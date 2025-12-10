@@ -10,6 +10,7 @@ public:
     void pollEvents();
     void swapBuffers();
     void clear(float r, float g, float b, float a);
+    GLFWwindow* getNativeWindow() const;
 private:
     GLFWwindow* window;
 };
