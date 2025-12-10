@@ -9,6 +9,7 @@
 #include "script/parser_stmt.hpp"
 #include "ast.hpp"
 #include "ast_debug.hpp"
+#include "interpreter.hpp"
 #include <string>
 #include <vector>
 #include <GLFW/glfw3.h>
@@ -34,6 +35,14 @@ void YukiRunner::run(Window& window) {
     Parser parser(tokens);
     std::vector<std::unique_ptr<Stmt>> statements = parseStatements(parser);
     logInfo("Parsed " + std::to_string(statements.size()) + " statements");
+    Interpreter interpreter;
+    for (const auto& stmt : statements) {
+        if (auto* estmt = dynamic_cast<ExpressionStmt*>(stmt.get())) {
+            interpreter.evalExpr(estmt->expression.get());
+            logInfo("Executed expression");
+            break; 
+        }
+    }
     Time time;
     initInput(window);
     while (!window.shouldClose()) {

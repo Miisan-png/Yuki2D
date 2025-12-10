@@ -55,4 +55,11 @@ struct Block : Stmt {
     std::vector<std::unique_ptr<Stmt>> statements;
     Block(std::vector<std::unique_ptr<Stmt>> statements) : statements(std::move(statements)) {}
 };
+struct FunctionDecl : Stmt {
+    std::string name;
+    std::vector<std::string> parameters;
+    std::unique_ptr<Block> body;
+    FunctionDecl(std::string name, std::vector<std::string> parameters, std::unique_ptr<Block> body)
+        : name(std::move(name)), parameters(std::move(parameters)), body(std::move(body)) {}
+};
 }
