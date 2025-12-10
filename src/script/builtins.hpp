@@ -1,7 +1,10 @@
 #pragma once
-#include <vector>
-#include "value.hpp"
+
+#include <unordered_map>
+#include <string>
+#include "../script/function_value.hpp"
+
 namespace yuki {
-using NativeFn = Value(*)(const std::vector<Value>& args);
-Value builtinPrint(const std::vector<Value>& args);
+    void registerScriptBuiltins(std::unordered_map<std::string, NativeFn>& builtins);
+    Value builtinPrint(const std::vector<Value>& args);
 }

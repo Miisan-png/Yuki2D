@@ -1,6 +1,11 @@
 #pragma once
+
 #include <string>
+#include "ast.hpp"
+
 namespace yuki {
-struct Expr;
+
 std::string printExpr(const Expr* expr);
+std::string printStmt(const Stmt* stmt);
+
 }

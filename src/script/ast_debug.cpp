@@ -1,28 +1,102 @@
 #include "ast_debug.hpp"
-#include "ast.hpp"
+#include <sstream>
+
 namespace yuki {
+
 std::string printExpr(const Expr* expr) {
-    if (!expr) return "null";
-    if (const auto* l = dynamic_cast<const Literal*>(expr)) {
-        return "Literal(" + l->value + ")";
-    }
-    if (const auto* i = dynamic_cast<const Identifier*>(expr)) {
-        return "Identifier(" + i->name + ")";
-    }
-    if (const auto* g = dynamic_cast<const Grouping*>(expr)) {
-        return "Grouping(" + printExpr(g->expression.get()) + ")";
-    }
-    if (const auto* b = dynamic_cast<const Binary*>(expr)) {
-        return "Binary(" + printExpr(b->left.get()) + ", " + b->op.text + ", " + printExpr(b->right.get()) + ")";
-    }
-    if (const auto* c = dynamic_cast<const Call*>(expr)) {
-        std::string s = "Call(" + printExpr(c->callee.get());
-        for (const auto& arg : c->arguments) {
-            s += ", " + printExpr(arg.get());
+    if (!expr) return "nil";
+
+    switch (expr->getKind()) {
+        case ExprKind::Literal: {
+            const auto* l = static_cast<const Literal*>(expr);
+            return l->value;
         }
-        s += ")";
-        return s;
+        case ExprKind::Variable: {
+            const auto* v = static_cast<const Variable*>(expr);
+            return v->name;
+        }
+        case ExprKind::Assign: {
+            const auto* a = static_cast<const Assign*>(expr);
+            return "(" + a->name + " = " + printExpr(a->value.get()) + ")";
+        }
+        case ExprKind::Binary: {
+            const auto* b = static_cast<const Binary*>(expr);
+            return "(" + printExpr(b->left.get()) + " " + b->op.lexeme + " " + printExpr(b->right.get()) + ")";
+        }
+        case ExprKind::Call: {
+            const auto* c = static_cast<const Call*>(expr);
+            std::stringstream ss;
+            ss << printExpr(c->callee.get()) << "(";
+            for (size_t i = 0; i < c->arguments.size(); ++i) {
+                ss << printExpr(c->arguments[i].get());
+                if (i < c->arguments.size() - 1) ss << ", ";
+            }
+            ss << ")";
+            return ss.str();
+        }
+        default:
+            return "UnknownExpr";
     }
-    return "Unknown";
 }
+
+std::string printStmt(const Stmt* stmt) {
+    if (!stmt) return "";
+
+    switch (stmt->getKind()) {
+        case StmtKind::Expression: {
+            const auto* e = static_cast<const ExpressionStmt*>(stmt);
+            return printExpr(e->expression.get()) + ";";
+        }
+        case StmtKind::VarDecl: {
+            const auto* v = static_cast<const VarDecl*>(stmt);
+            std::string s = "var " + v->name;
+            if (v->initializer) {
+                s += " = " + printExpr(v->initializer.get());
+            }
+            return s + ";";
+        }
+        case StmtKind::Block: {
+            const auto* b = static_cast<const Block*>(stmt);
+            std::string s = "{ ";
+            for (const auto& st : b->statements) {
+                s += printStmt(st.get()) + " ";
+            }
+            s += "}";
+            return s;
+        }
+        case StmtKind::Function: {
+            const auto* f = static_cast<const FunctionDecl*>(stmt);
+            std::string s = "fn " + f->name + "(";
+            for (size_t i = 0; i < f->parameters.size(); ++i) {
+                s += f->parameters[i];
+                if (i < f->parameters.size() - 1) s += ", ";
+            }
+            s += ") " + printStmt(f->body.get());
+            return s;
+        }
+        case StmtKind::Return: {
+            const auto* r = static_cast<const ReturnStmt*>(stmt);
+            std::string s = "return";
+            if (r->value) {
+                s += " " + printExpr(r->value.get());
+            }
+            return s + ";";
+        }
+        case StmtKind::If: {
+            const auto* i = static_cast<const IfStmt*>(stmt);
+            std::string s = "if (" + printExpr(i->condition.get()) + ") " + printStmt(i->thenBranch.get());
+            if (i->elseBranch) {
+                s += " else " + printStmt(i->elseBranch.get());
+            }
+            return s;
+        }
+        case StmtKind::While: {
+            const auto* w = static_cast<const WhileStmt*>(stmt);
+            return "while (" + printExpr(w->condition.get()) + ") " + printStmt(w->body.get());
+        }
+        default:
+            return "UnknownStmt";
+    }
+}
+
 }

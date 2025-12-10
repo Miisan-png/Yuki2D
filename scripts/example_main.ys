@@ -1,7 +1,7 @@
-engine_log("TEST 1");
-
-fn update(dt) {
-    engine_log("UPDATE FUNCTION EXISTS");
+fn init() {
+    engine_log("Yuki2S Initialized!");
 }
 
-engine_log("TEST 2");
+fn update(dt) {
+    engine_log(dt);
+}

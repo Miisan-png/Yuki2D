@@ -1,11 +1,15 @@
 #include "environment.hpp"
-#include <optional>
+
 namespace yuki {
+
 Environment::Environment() : parent(nullptr) {}
+
 Environment::Environment(Environment* parent) : parent(parent) {}
+
 void Environment::define(const std::string& name, const Value& value) {
     values[name] = value;
 }
+
 bool Environment::assign(const std::string& name, const Value& value) {
     if (values.count(name)) {
         values[name] = value;
@@ -16,6 +20,7 @@ bool Environment::assign(const std::string& name, const Value& value) {
     }
     return false;
 }
+
 std::optional<Value> Environment::get(const std::string& name) const {
     if (values.count(name)) {
         return values.at(name);
@@ -25,4 +30,5 @@ std::optional<Value> Environment::get(const std::string& name) const {
     }
     return std::nullopt;
 }
+
 }

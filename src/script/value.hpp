@@ -1,26 +1,45 @@
 #pragma once
+
 #include <string>
 #include <vector>
-#include "token.hpp"
+#include "function_value.hpp"
+
 namespace yuki {
-class Environment;
-struct Block;
-enum class ValueType { Number, String, Function, Nil };
-struct FunctionValue {
-    std::vector<std::string> parameters;
-    Block* body;
-    Environment* closure;
+
+enum class ValueType {
+    Nil,
+    Number,
+    Bool,
+    String,
+    Function
 };
+
 struct Value {
     ValueType type;
-    double number;
-    std::string text;
-    FunctionValue* function;
+
+    double numberVal;
+    bool boolVal;
+    std::string stringVal;
+    FunctionValue* functionVal; // We treat this as a raw pointer reference.
+
     Value();
-    static Value numberVal(double x);
-    static Value stringVal(const std::string& s);
-    static Value functionVal(FunctionValue* fn);
+
+    // Factories
     static Value nilVal();
+    static Value number(double val);
+    static Value boolean(bool val);
+    static Value string(const std::string& val);
+    static Value function(FunctionValue* val);
+
+    // Checks
+    bool isNil() const;
+    bool isNumber() const;
+    bool isBool() const;
+    bool isString() const;
     bool isFunction() const;
+
+    // Conversion
+    std::string toString() const;
 };
+
 }
