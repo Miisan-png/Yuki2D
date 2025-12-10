@@ -21,5 +21,6 @@ struct Value {
     static Value stringVal(const std::string& s);
     static Value functionVal(FunctionValue* fn);
     static Value nilVal();
+    bool isFunction() const;
 };
 }

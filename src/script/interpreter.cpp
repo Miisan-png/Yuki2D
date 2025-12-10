@@ -2,8 +2,7 @@
 #include "../core/engine_bindings.hpp"
 #include <cstdlib>
 namespace yuki {
-Interpreter::Interpreter() {
-    globals = new Environment();
+Interpreter::Interpreter() : globals(new Environment()), env(globals) {
     current = globals;
     builtins["print"] = builtinPrint;
     EngineBindings::registerBuiltins(builtins);
@@ -29,6 +28,28 @@ bool isEqual(const Value& a, const Value& b) {
     if (a.type == ValueType::String) return a.text == b.text;
     return false;
 }
+Value Interpreter::callFunction(FunctionValue* fn, const std::vector<Value>& args) {
+    if (!fn) return Value::nilVal();
+    if (args.size() != fn->parameters.size()) return Value::nilVal();
+    Environment* closure = new Environment(fn->closure);
+    for (size_t i = 0; i < args.size(); ++i) {
+        closure->define(fn->parameters[i], args[i]);
+    }
+    Value ret = Value::nilVal();
+    try {
+        execBlock(fn->body, closure);
+    } catch (const ReturnSignal& sig) {
+        ret = sig.value;
+    }
+    delete closure;
+    return ret;
+}
+Value Interpreter::callFunction(const Value& fn, const std::vector<Value>& args) {
+    if (!fn.isFunction()) {
+        return Value::nilVal();
+    }
+    return callFunction(fn.function, args);
+}
 Value Interpreter::evalExpr(const Expr* expr) {
     if (!expr) return Value::nilVal();
     if (const auto* l = dynamic_cast<const Literal*>(expr)) {
@@ -42,8 +63,10 @@ Value Interpreter::evalExpr(const Expr* expr) {
         return Value::stringVal(l->value);
     }
     if (const auto* i = dynamic_cast<const Identifier*>(expr)) {
-        Value v = current->get(i->name);
-        if (v.type != ValueType::Nil) return v;
+        auto val = current->get(i->name);
+        if (val.has_value()) {
+            return val.value();
+        }
         if (builtins.count(i->name)) {
             return Value::numberVal(0); 
         }
@@ -110,20 +133,7 @@ Value Interpreter::evalExpr(const Expr* expr) {
             args.push_back(evalExpr(arg.get()));
         }
         if (callee.type == ValueType::Function) {
-            FunctionValue* fn = callee.function;
-            if (args.size() != fn->parameters.size()) return Value::nilVal();
-            Environment* closure = new Environment(fn->closure);
-            for (size_t i = 0; i < args.size(); ++i) {
-                closure->define(fn->parameters[i], args[i]);
-            }
-            Value ret = Value::nilVal();
-            try {
-                execBlock(fn->body, closure);
-            } catch (const ReturnSignal& sig) {
-                ret = sig.value;
-            }
-            delete closure;
-            return ret;
+            return callFunction(callee.function, args);
         }
         if (const auto* i = dynamic_cast<const Identifier*>(c->callee.get())) {
             if (builtins.count(i->name)) {
@@ -195,6 +205,16 @@ Value Interpreter::execBlock(const Block* block, Environment* newEnv) {
         evalStmt(stmt.get());
     }
     current = previous;
+    return Value::nilVal();
+}
+Value Interpreter::exec(const std::vector<std::unique_ptr<Stmt>>& statements) {
+    try {
+        for (const auto& stmt : statements) {
+            evalStmt(stmt.get());
+        }
+    } catch (const ReturnSignal& sig) {
+        return sig.value;
+    }
     return Value::nilVal();
 }
 }

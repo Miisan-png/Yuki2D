@@ -17,8 +17,12 @@ public:
     Value evalExpr(const Expr* expr);
     Value evalStmt(const Stmt* stmt);
     Value execBlock(const Block* block, Environment* newEnv);
-private:
+    Value callFunction(FunctionValue* fn, const std::vector<Value>& args);
+    Value callFunction(const Value& fn, const std::vector<Value>& args);
+    Value exec(const std::vector<std::unique_ptr<Stmt>>& statements);
     Environment* globals;
+    Environment* env;
+private:
     Environment* current;
     std::unordered_map<std::string, NativeFn> builtins;
 };

@@ -1,1 +1,7 @@
-print("Hello from YukiScript")
+engine_log("TEST 1");
+
+fn update(dt) {
+    engine_log("UPDATE FUNCTION EXISTS");
+}
+
+engine_log("TEST 2");

@@ -22,4 +22,7 @@ Value Value::functionVal(FunctionValue* fn) {
 Value Value::nilVal() {
     return Value();
 }
+bool Value::isFunction() const {
+    return type == ValueType::Function;
+}
 }
