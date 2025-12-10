@@ -9,6 +9,7 @@ int main(int argc, char** argv) {
     }
     yuki::logInfo("Engine starting");
     yuki::logInfo("Using script: " + scriptPath);
+    yuki::logInfo("Time system initialized");
     yuki::Window window(1280, 720, "Yuki2D");
     yuki::YukiRunner runner(scriptPath);
     runner.run(window);
