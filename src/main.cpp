@@ -1,6 +1,7 @@
 #include "window.hpp"
 #include "yuki_runner.hpp"
 #include "log.hpp"
+#include "config.hpp"
 #include <string>
 int main(int argc, char** argv) {
     std::string scriptPath = "scripts/example_main.ys";
@@ -10,7 +11,8 @@ int main(int argc, char** argv) {
     yuki::logInfo("Engine starting");
     yuki::logInfo("Using script: " + scriptPath);
     yuki::logInfo("Time system initialized");
-    yuki::Window window(1280, 720, "Yuki2D");
+    yuki::EngineConfig config;
+    yuki::Window window(config.width, config.height, config.title);
     yuki::YukiRunner runner(scriptPath);
     runner.run(window);
     return 0;

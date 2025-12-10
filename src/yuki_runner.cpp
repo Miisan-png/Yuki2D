@@ -3,15 +3,30 @@
 #include "log.hpp"
 #include "time.hpp"
 #include "input.hpp"
+#include "token.hpp"
+#include "token_debug.hpp"
 #include <string>
+#include <vector>
 #include <GLFW/glfw3.h>
 namespace yuki {
 YukiRunner::YukiRunner(const std::string& scriptPath) : scriptPath(scriptPath) {}
 void YukiRunner::run(Window& window) {
     logInfo("Running script: " + scriptPath);
+    logInfo("Window: " + window.getTitle() + " (" + std::to_string(window.getWidth()) + "x" + std::to_string(window.getHeight()) + ")");
     ScriptLoader loader(scriptPath);
     std::string content = loader.load();
     logInfo("Loaded script: " + std::to_string(content.size()) + " bytes");
+    Tokenizer tokenizer(content);
+    std::vector<Token> tokens = tokenizer.scanTokens();
+    logInfo("Tokenized " + std::to_string(tokens.size()) + " tokens");
+    std::vector<Token> previewTokens;
+    for (size_t i = 0; i < tokens.size() && i < 10; ++i) {
+        previewTokens.push_back(tokens[i]);
+    }
+    printTokens(previewTokens);
+    if (tokens.size() > 10) {
+        logInfo("... and more");
+    }
     Time time;
     initInput(window);
     while (!window.shouldClose()) {
