@@ -20,7 +20,37 @@ std::vector<Token> Tokenizer::scanTokens() {
             case '-': tokens.push_back({TokenType::Minus, "-"}); break;
             case '*': tokens.push_back({TokenType::Star, "*"}); break;
             case '/': tokens.push_back({TokenType::Slash, "/"}); break;
-            case '=': tokens.push_back({TokenType::Equal, "="}); break;
+            case '=': 
+                if (current < source.size() && source[current] == '=') {
+                    current++;
+                    tokens.push_back({TokenType::EqualEqual, "=="});
+                } else {
+                    tokens.push_back({TokenType::Equal, "="});
+                }
+                break;
+            case '!':
+                if (current < source.size() && source[current] == '=') {
+                    current++;
+                    tokens.push_back({TokenType::BangEqual, "!="});
+                } else {
+                }
+                break;
+            case '<':
+                if (current < source.size() && source[current] == '=') {
+                    current++;
+                    tokens.push_back({TokenType::LessEqual, "<="});
+                } else {
+                    tokens.push_back({TokenType::Less, "<"});
+                }
+                break;
+            case '>':
+                if (current < source.size() && source[current] == '=') {
+                    current++;
+                    tokens.push_back({TokenType::GreaterEqual, ">="});
+                } else {
+                    tokens.push_back({TokenType::Greater, ">"});
+                }
+                break;
             case '"': {
                 std::string val;
                 while (current < source.size() && source[current] != '"') {
@@ -44,7 +74,9 @@ std::vector<Token> Tokenizer::scanTokens() {
                     while (current < source.size() && (std::isalnum(source[current]) || source[current] == '_')) {
                         val += source[current++];
                     }
-                    tokens.push_back({TokenType::Identifier, val});
+                    if (val == "true") tokens.push_back({TokenType::True, "true"});
+                    else if (val == "false") tokens.push_back({TokenType::False, "false"});
+                    else tokens.push_back({TokenType::Identifier, val});
                 }
                 break;
         }

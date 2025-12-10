@@ -36,13 +36,14 @@ void YukiRunner::run(Window& window) {
     std::vector<std::unique_ptr<Stmt>> statements = parseStatements(parser);
     logInfo("Parsed " + std::to_string(statements.size()) + " statements");
     Interpreter interpreter;
-    for (const auto& stmt : statements) {
-        if (auto* estmt = dynamic_cast<ExpressionStmt*>(stmt.get())) {
-            interpreter.evalExpr(estmt->expression.get());
-            logInfo("Executed expression");
-            break; 
+    try {
+        for (const auto& stmt : statements) {
+            interpreter.evalStmt(stmt.get());
         }
+    } catch (const ReturnSignal&) {
+        // Top-level return ignored
     }
+    logInfo("Executed program");
     Time time;
     initInput(window);
     while (!window.shouldClose()) {

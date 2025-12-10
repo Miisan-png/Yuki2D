@@ -62,4 +62,21 @@ struct FunctionDecl : Stmt {
     FunctionDecl(std::string name, std::vector<std::string> parameters, std::unique_ptr<Block> body)
         : name(std::move(name)), parameters(std::move(parameters)), body(std::move(body)) {}
 };
+struct ReturnStmt : Stmt {
+    std::unique_ptr<Expr> value;
+    ReturnStmt(std::unique_ptr<Expr> value) : value(std::move(value)) {}
+};
+struct IfStmt : Stmt {
+    std::unique_ptr<Expr> condition;
+    std::unique_ptr<Stmt> thenBranch;
+    std::unique_ptr<Stmt> elseBranch;
+    IfStmt(std::unique_ptr<Expr> condition, std::unique_ptr<Stmt> thenBranch, std::unique_ptr<Stmt> elseBranch)
+        : condition(std::move(condition)), thenBranch(std::move(thenBranch)), elseBranch(std::move(elseBranch)) {}
+};
+struct WhileStmt : Stmt {
+    std::unique_ptr<Expr> condition;
+    std::unique_ptr<Stmt> body;
+    WhileStmt(std::unique_ptr<Expr> condition, std::unique_ptr<Stmt> body)
+        : condition(std::move(condition)), body(std::move(body)) {}
+};
 }

@@ -21,5 +21,8 @@ private:
     std::unique_ptr<Expr> primary();
     std::unique_ptr<Expr> parseBinary();
     std::unique_ptr<Expr> parseCall();
+    std::unique_ptr<Expr> parseTerm();
+    std::unique_ptr<Expr> parseComparison();
+    std::unique_ptr<Expr> parseEquality();
 };
 }

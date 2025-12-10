@@ -32,6 +32,29 @@ std::unique_ptr<Stmt> parseDeclaration(Parser& parser) {
             }
         }
     }
+    if (parser.check(TokenType::Identifier) && parser.peek().text == "if") {
+        parser.advance();
+        if (parser.match(TokenType::LeftParen)) {
+            std::unique_ptr<Expr> condition = parser.parseExpression();
+            parser.match(TokenType::RightParen);
+            std::unique_ptr<Stmt> thenBranch = parseDeclaration(parser);
+            std::unique_ptr<Stmt> elseBranch = nullptr;
+            if (parser.check(TokenType::Identifier) && parser.peek().text == "else") {
+                parser.advance();
+                elseBranch = parseDeclaration(parser);
+            }
+            return std::make_unique<IfStmt>(std::move(condition), std::move(thenBranch), std::move(elseBranch));
+        }
+    }
+    if (parser.check(TokenType::Identifier) && parser.peek().text == "while") {
+        parser.advance();
+        if (parser.match(TokenType::LeftParen)) {
+            std::unique_ptr<Expr> condition = parser.parseExpression();
+            parser.match(TokenType::RightParen);
+            std::unique_ptr<Stmt> body = parseDeclaration(parser);
+            return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
+        }
+    }
     if (parser.check(TokenType::Identifier) && parser.peek().text == "let") {
         parser.advance(); 
         if (parser.check(TokenType::Identifier)) { 
@@ -43,6 +66,14 @@ std::unique_ptr<Stmt> parseDeclaration(Parser& parser) {
         }
         parser.advance(); 
         return nullptr;
+    }
+    if (parser.check(TokenType::Identifier) && parser.peek().text == "return") {
+        parser.advance();
+        std::unique_ptr<Expr> value = nullptr;
+        if (!parser.check(TokenType::Semicolon)) { 
+            value = parser.parseExpression();
+        }
+        return std::make_unique<ReturnStmt>(std::move(value));
     }
     if (parser.check(TokenType::Identifier) && parser.checkNext(TokenType::Equal)) {
         Token nameToken = parser.advance(); 

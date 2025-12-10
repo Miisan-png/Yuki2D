@@ -7,6 +7,8 @@ enum class TokenType {
     LeftParen, RightParen, LeftBrace, RightBrace,
     Comma, Colon, Semicolon,
     Plus, Minus, Star, Slash, Equal,
+    EqualEqual, BangEqual, Less, LessEqual, Greater, GreaterEqual,
+    True, False,
     Eof
 };
 struct Token {

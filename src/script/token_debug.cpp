@@ -19,6 +19,14 @@ std::string tokenTypeToString(TokenType type) {
         case TokenType::Star: return "Star";
         case TokenType::Slash: return "Slash";
         case TokenType::Equal: return "Equal";
+        case TokenType::EqualEqual: return "EqualEqual";
+        case TokenType::BangEqual: return "BangEqual";
+        case TokenType::Less: return "Less";
+        case TokenType::LessEqual: return "LessEqual";
+        case TokenType::Greater: return "Greater";
+        case TokenType::GreaterEqual: return "GreaterEqual";
+        case TokenType::True: return "True";
+        case TokenType::False: return "False";
         case TokenType::Eof: return "Eof";
         default: return "Unknown";
     }

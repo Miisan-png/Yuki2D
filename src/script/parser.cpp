@@ -2,7 +2,7 @@
 namespace yuki {
 Parser::Parser(const std::vector<Token>& tokens) : tokens(tokens) {}
 std::unique_ptr<Expr> Parser::parseExpression() {
-    return parseCall();
+    return parseEquality();
 }
 Token Parser::peek() const {
     return tokens[current];
@@ -34,6 +34,9 @@ bool Parser::isAtEnd() const {
     return peek().type == TokenType::Eof;
 }
 std::unique_ptr<Expr> Parser::primary() {
+    if (match(TokenType::True) || match(TokenType::False)) {
+        return std::make_unique<Literal>(tokens[current - 1].text);
+    }
     if (match(TokenType::Number) || match(TokenType::String)) {
         return std::make_unique<Literal>(tokens[current - 1].text);
     }
@@ -48,14 +51,35 @@ std::unique_ptr<Expr> Parser::primary() {
     }
     return nullptr;
 }
-std::unique_ptr<Expr> Parser::parseBinary() {
-    std::unique_ptr<Expr> expr = primary();
+std::unique_ptr<Expr> Parser::parseTerm() {
+    std::unique_ptr<Expr> expr = parseCall();
     while (match(TokenType::Plus) || match(TokenType::Minus)) {
         Token op = tokens[current - 1];
-        std::unique_ptr<Expr> right = primary();
+        std::unique_ptr<Expr> right = parseCall();
         expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
     }
     return expr;
+}
+std::unique_ptr<Expr> Parser::parseComparison() {
+    std::unique_ptr<Expr> expr = parseTerm();
+    while (match(TokenType::Less) || match(TokenType::LessEqual) || match(TokenType::Greater) || match(TokenType::GreaterEqual)) {
+        Token op = tokens[current - 1];
+        std::unique_ptr<Expr> right = parseTerm();
+        expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
+    }
+    return expr;
+}
+std::unique_ptr<Expr> Parser::parseEquality() {
+    std::unique_ptr<Expr> expr = parseComparison();
+    while (match(TokenType::EqualEqual) || match(TokenType::BangEqual)) {
+        Token op = tokens[current - 1];
+        std::unique_ptr<Expr> right = parseComparison();
+        expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
+    }
+    return expr;
+}
+std::unique_ptr<Expr> Parser::parseBinary() {
+    return parseEquality();
 }
 std::unique_ptr<Expr> Parser::parseCall() {
     std::unique_ptr<Expr> expr = primary();
