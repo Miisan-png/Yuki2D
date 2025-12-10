@@ -2,8 +2,23 @@ cmake_minimum_required(VERSION 3.16)
 project(Yuki2D)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 find_package(glfw3 REQUIRED)
 find_package(OpenGL REQUIRED)
-add_executable(yuki2d src/main.cpp src/window.cpp src/yuki_runner.cpp src/log.cpp src/yuki_script_loader.cpp src/time.cpp src/input.cpp src/tokenizer.cpp src/token_debug.cpp)
+
+add_executable(yuki2d 
+    src/main.cpp 
+    src/core/window.cpp 
+    src/core/log.cpp 
+    src/core/time.cpp 
+    src/core/input.cpp 
+    src/script/yuki_script_loader.cpp 
+    src/script/tokenizer.cpp 
+    src/script/token_debug.cpp 
+    src/script/parser.cpp 
+    src/runtime/yuki_runner.cpp
+)
+
+target_include_directories(yuki2d PRIVATE src/core src/script src/runtime)
 target_link_libraries(yuki2d PRIVATE glfw OpenGL::GL)
 target_compile_options(yuki2d PRIVATE -Wall -Wextra -Wpedantic)

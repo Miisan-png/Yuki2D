@@ -5,6 +5,8 @@
 #include "input.hpp"
 #include "token.hpp"
 #include "token_debug.hpp"
+#include "parser.hpp"
+#include "ast.hpp"
 #include <string>
 #include <vector>
 #include <GLFW/glfw3.h>
@@ -26,6 +28,11 @@ void YukiRunner::run(Window& window) {
     printTokens(previewTokens);
     if (tokens.size() > 10) {
         logInfo("... and more");
+    }
+    Parser parser(tokens);
+    std::unique_ptr<Expr> expr = parser.parseExpression();
+    if (expr) {
+        logInfo("Parsed expression");
     }
     Time time;
     initInput(window);
