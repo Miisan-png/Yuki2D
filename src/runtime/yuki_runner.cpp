@@ -6,7 +6,9 @@
 #include "token.hpp"
 #include "token_debug.hpp"
 #include "parser.hpp"
+#include "script/parser_stmt.hpp"
 #include "ast.hpp"
+#include "ast_debug.hpp"
 #include <string>
 #include <vector>
 #include <GLFW/glfw3.h>
@@ -30,10 +32,8 @@ void YukiRunner::run(Window& window) {
         logInfo("... and more");
     }
     Parser parser(tokens);
-    std::unique_ptr<Expr> expr = parser.parseExpression();
-    if (expr) {
-        logInfo("Parsed expression");
-    }
+    std::vector<std::unique_ptr<Stmt>> statements = parseStatements(parser);
+    logInfo("Parsed " + std::to_string(statements.size()) + " statements");
     Time time;
     initInput(window);
     while (!window.shouldClose()) {
