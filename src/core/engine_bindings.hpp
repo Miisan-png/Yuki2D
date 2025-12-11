@@ -10,6 +10,7 @@ class Renderer2D;
 class EngineBindings {
 public:
     static void init(Window* window, Renderer2D* renderer);
+    static void setAssetBase(const std::string& base);
     static void registerBuiltins(std::unordered_map<std::string, NativeFn>& builtins);
 };
 Value engineLog(const std::vector<Value>& args);

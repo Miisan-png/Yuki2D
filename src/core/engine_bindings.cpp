@@ -11,12 +11,17 @@
 #include <cmath>
 #include <unordered_map>
 #include <algorithm>
+#include <filesystem>
 namespace yuki {
 static Window* g_Window = nullptr;
 static Renderer2D* g_Renderer = nullptr;
+static std::string g_AssetBase;
 void EngineBindings::init(Window* window, Renderer2D* renderer) {
     g_Window = window;
     g_Renderer = renderer;
+}
+void EngineBindings::setAssetBase(const std::string& base) {
+    g_AssetBase = base;
 }
 
 static std::unordered_map<std::string, int> buildKeyMap() {
@@ -91,7 +96,11 @@ Value engineDrawRect(const std::vector<Value>& args) {
 }
 Value engineLoadSprite(const std::vector<Value>& args) {
     if (args.size() >= 1 && g_Renderer) {
-        return Value::number(g_Renderer->loadSprite(args[0].stringVal));
+        std::filesystem::path p(args[0].stringVal);
+        if (!p.is_absolute() && !g_AssetBase.empty()) {
+            p = std::filesystem::path(g_AssetBase) / p;
+        }
+        return Value::number(g_Renderer->loadSprite(p.string()));
     }
     return Value::number(-1);
 }

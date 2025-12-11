@@ -12,6 +12,7 @@ struct RenderCmd {
 class Renderer2D {
 public:
     Renderer2D();
+    ~Renderer2D();
     void drawRect(float x, float y, float w, float h, float r, float g, float b);
     int loadSprite(const std::string& path);
     void drawSprite(int id, float x, float y);
@@ -19,5 +20,11 @@ public:
 private:
     std::vector<RenderCmd> buffer;
     int spriteCounter;
+    struct Texture {
+        unsigned int handle;
+        int w;
+        int h;
+    };
+    std::vector<Texture> textures;
 };
 }

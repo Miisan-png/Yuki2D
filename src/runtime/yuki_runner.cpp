@@ -13,6 +13,7 @@
 #include <vector>
 #include <GLFW/glfw3.h>
 #include <optional>
+#include <filesystem>
 namespace yuki {
 YukiRunner::YukiRunner(const std::string& scriptPath) : scriptPath(scriptPath) {}
 void YukiRunner::run(Window& window) {
@@ -29,6 +30,8 @@ void YukiRunner::run(Window& window) {
     Interpreter interpreter;
     Renderer2D renderer;
     EngineBindings::init(&window, &renderer);
+    std::filesystem::path scriptDir = std::filesystem::path(scriptPath).parent_path();
+    EngineBindings::setAssetBase(scriptDir.string());
     initInput(window);
     Value initFn = Value::nilVal();
     Value updateFn = Value::nilVal();
