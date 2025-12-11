@@ -1,17 +1,16 @@
 var font;
+var player_hp = 100;
 import("util_module.ys");
 
 fn init() {
     print("Loading font");
     greet("Yuki");
-    var util = import("util_module.ys", "util");
-    var msg = map_get(util, "get_message")();
-    var arr = [1, 2, 3];
+    var msg = get_message();
+    var arr = array(1, 2, 3);
     array_push(arr, 4);
     print("Array len:", array_len(arr), "item0:", array_get(arr, 0));
-    print("Index of 3:", array_index_of(arr, 3));
     var tbl = map("greeting", msg, "count", array_len(arr));
-    print("Map greeting:", map_get(tbl, "greeting"), "has count:", map_has(tbl, "count"), "size:", map_size(tbl));
+    print("Map greeting:", map_get(tbl, "greeting"), "has count:", map_has(tbl, "count"));
     font = load_font("../assets/fonts/monogram_bitmap.png", "../assets/fonts/monogram_bitmap.json");
     set_clear_color(0.08, 0.09, 0.12);
     print(msg);
@@ -19,6 +18,7 @@ fn init() {
 
 fn update(dt) {
     draw_text(font, "Yuki text demo", 16, 20, "scale", 2, "color", 1, 1, 0.85, 1);
-    var lines = join([ "Wrapped and centered text", "that shows the new font pipeline", "in action." ], " ");
-    draw_text(font, lines, 200, 90, "align", "center", "max_width", 220, "line_height", 14);
+    draw_text(font, "Wrapped and centered text that shows the new font pipeline in action.", 200, 90, "align", "center", "max_width", 220, "line_height", 14);
+    draw_text(font, "HP: " + player_hp, 16, 60, "scale", 2, "color", 0.9, 0.8, 0.3, 1);
+    draw_text(font, "Console: ~ then 'player_hp = 50;'", 16, 80, "color", 0.7, 0.9, 1, 1);
 }

@@ -16,10 +16,12 @@ namespace {
         size_t e = s.find_last_not_of(" \t\r\n");
         return s.substr(b, e - b + 1);
     }
+    constexpr float kConsoleFontScale = 2.0f;
 }
 DevConsole::DevConsole(Renderer2D* r, Interpreter* i) : active(false), renderer(r), interpreter(i), fontId(-1) {}
 void DevConsole::toggle() {
     active = !active;
+    if (active) cursorPos = (int)input.size();
 }
 bool DevConsole::isActive() const {
     return active;
@@ -29,6 +31,7 @@ void DevConsole::appendLine(const std::string& line) {
     if (lines.size() > 50) {
         lines.erase(lines.begin());
     }
+    scrollOffset = 0;
 }
 void DevConsole::log(const std::string& line) {
     appendLine(line);
@@ -37,8 +40,33 @@ void DevConsole::submit() {
     if (!interpreter) return;
     std::string src = input;
     input.clear();
+    cursorPos = 0;
     src = trim(src);
     if (src.empty()) return;
+    if (src == "clear") {
+        lines.clear();
+        return;
+    }
+    if (src == "help") {
+        appendLine("Console: type Yuki code and enter. Commands: help, clear.");
+        appendLine("Tip: set globals like 'player_hp = 50;' then hit Enter.");
+        return;
+    }
+    if (src == "globals" || src == "ls") {
+        listGlobals();
+        history.push_back(src);
+        if (history.size() > 50) history.erase(history.begin());
+        historyIndex = -1;
+        return;
+    }
+    if (src.find(';') == std::string::npos && src.find('{') == std::string::npos) {
+        src.push_back(';');
+    }
+    if (history.empty() || history.back() != src) {
+        history.push_back(src);
+        if (history.size() > 50) history.erase(history.begin());
+    }
+    historyIndex = -1;
     Tokenizer tokenizer(src);
     std::vector<Token> tokens = tokenizer.scanTokens();
     Parser parser(tokens);
@@ -64,6 +92,10 @@ void DevConsole::submit() {
     if (lastExpr) {
         Value v = interpreter->evalExpr(lastExpr->expression.get());
         if (v.type != ValueType::Nil) appendLine(v.toString());
+        if (interpreter->hasRuntimeErrors()) {
+            for (const auto& e : interpreter->getRuntimeErrors()) appendLine(e);
+            interpreter->clearRuntimeErrors();
+        }
     }
 }
 int DevConsole::ensureFont() {
@@ -72,29 +104,109 @@ int DevConsole::ensureFont() {
     fontId = renderer->loadFont("../assets/fonts/monogram_bitmap.png", "../assets/fonts/monogram_bitmap.json");
     return fontId;
 }
+void DevConsole::moveCursor(int delta) {
+    cursorPos += delta;
+    if (cursorPos < 0) cursorPos = 0;
+    if (cursorPos > (int)input.size()) cursorPos = (int)input.size();
+}
+void DevConsole::insertChar(char c) {
+    input.insert(input.begin() + cursorPos, c);
+    cursorPos++;
+}
+void DevConsole::backspace() {
+    if (cursorPos > 0 && !input.empty()) {
+        input.erase(input.begin() + cursorPos - 1);
+        cursorPos--;
+    }
+}
+void DevConsole::listGlobals() {
+    if (!interpreter || !interpreter->env) return;
+    appendLine("Globals:");
+    for (const auto& kv : interpreter->env->values) {
+        std::string typeStr;
+        switch (kv.second.type) {
+            case ValueType::Nil: typeStr = "nil"; break;
+            case ValueType::Number: typeStr = "number"; break;
+            case ValueType::Bool: typeStr = "bool"; break;
+            case ValueType::String: typeStr = "string"; break;
+            case ValueType::Function: typeStr = "function"; break;
+            case ValueType::Map: typeStr = "map"; break;
+            case ValueType::Array: typeStr = "array"; break;
+        }
+        appendLine(" - " + kv.first + " (" + typeStr + ")");
+    }
+}
+void DevConsole::historyPrev() {
+    if (history.empty()) return;
+    if (historyIndex < 0) historyIndex = (int)history.size() - 1;
+    else if (historyIndex > 0) historyIndex--;
+    input = history[historyIndex];
+    cursorPos = (int)input.size();
+}
+void DevConsole::historyNext() {
+    if (history.empty()) return;
+    if (historyIndex >= 0 && historyIndex < (int)history.size() - 1) {
+        historyIndex++;
+        input = history[historyIndex];
+    } else {
+        historyIndex = -1;
+        input.clear();
+    }
+    cursorPos = (int)input.size();
+}
+void DevConsole::scroll(int delta) {
+    int maxOffset = (int)lines.size();
+    scrollOffset += delta;
+    if (scrollOffset < 0) scrollOffset = 0;
+    if (scrollOffset > maxOffset) scrollOffset = maxOffset;
+}
 void DevConsole::updateInput() {
     if (isKeyPressed(GLFW_KEY_GRAVE_ACCENT)) {
         toggle();
         return;
     }
     if (!active) return;
+    bool shift = isKeyDown(GLFW_KEY_LEFT_SHIFT) || isKeyDown(GLFW_KEY_RIGHT_SHIFT);
     for (char c = 'a'; c <= 'z'; ++c) {
         int key = GLFW_KEY_A + (c - 'a');
-        if (isKeyPressed(key)) input.push_back(c);
+        if (isKeyPressed(key)) insertChar(shift ? (char)std::toupper(c) : c);
     }
+    static const char* shiftedDigits = ")!@#$%^&*(";
     for (char c = '0'; c <= '9'; ++c) {
         int key = GLFW_KEY_0 + (c - '0');
-        if (isKeyPressed(key)) input.push_back(c);
+        if (isKeyPressed(key)) {
+            if (shift) insertChar(shiftedDigits[c - '0']);
+            else insertChar(c);
+        }
     }
-    if (isKeyPressed(GLFW_KEY_SPACE)) input.push_back(' ');
-    if (isKeyPressed(GLFW_KEY_MINUS)) input.push_back('-');
-    if (isKeyPressed(GLFW_KEY_EQUAL)) input.push_back('=');
-    if (isKeyPressed(GLFW_KEY_PERIOD)) input.push_back('.');
-    if (isKeyPressed(GLFW_KEY_COMMA)) input.push_back(',');
-    if (isKeyPressed(GLFW_KEY_SLASH)) input.push_back('/');
+    if (isKeyPressed(GLFW_KEY_SPACE)) insertChar(' ');
+    if (isKeyPressed(GLFW_KEY_PERIOD)) insertChar(shift ? '>' : '.');
+    if (isKeyPressed(GLFW_KEY_COMMA)) insertChar(shift ? '<' : ',');
+    if (isKeyPressed(GLFW_KEY_SLASH)) insertChar(shift ? '?' : '/');
+    if (isKeyPressed(GLFW_KEY_APOSTROPHE)) insertChar(shift ? '\"' : '\'');
+    if (isKeyPressed(GLFW_KEY_SEMICOLON)) insertChar(shift ? ':' : ';');
+    if (isKeyPressed(GLFW_KEY_EQUAL)) insertChar(shift ? '+' : '=');
+    if (isKeyPressed(GLFW_KEY_KP_ADD)) insertChar('+');
+    if (isKeyPressed(GLFW_KEY_MINUS)) insertChar(shift ? '_' : '-');
+    if (isKeyPressed(GLFW_KEY_KP_SUBTRACT)) insertChar('-');
+    if (isKeyPressed(GLFW_KEY_LEFT_BRACKET)) insertChar(shift ? '{' : '[');
+    if (isKeyPressed(GLFW_KEY_RIGHT_BRACKET)) insertChar(shift ? '}' : ']');
+    if (isKeyPressed(GLFW_KEY_BACKSLASH)) insertChar(shift ? '|' : '\\');
+    if (isKeyPressed(GLFW_KEY_9) && shift) insertChar('(');
+    if (isKeyPressed(GLFW_KEY_0) && shift) insertChar(')');
+    if (isKeyPressed(GLFW_KEY_8) && shift) insertChar('*');
+    if (isKeyPressed(GLFW_KEY_6) && shift) insertChar('^');
     if (isKeyPressed(GLFW_KEY_BACKSPACE)) {
-        if (!input.empty()) input.pop_back();
+        backspace();
     }
+    if (isKeyPressed(GLFW_KEY_LEFT)) moveCursor(-1);
+    if (isKeyPressed(GLFW_KEY_RIGHT)) moveCursor(1);
+    if (isKeyPressed(GLFW_KEY_HOME)) cursorPos = 0;
+    if (isKeyPressed(GLFW_KEY_END)) cursorPos = (int)input.size();
+    if (isKeyPressed(GLFW_KEY_UP)) historyPrev();
+    if (isKeyPressed(GLFW_KEY_DOWN)) historyNext();
+    if (isKeyPressed(GLFW_KEY_PAGE_UP)) scroll(5);
+    if (isKeyPressed(GLFW_KEY_PAGE_DOWN)) scroll(-5);
     if (isKeyPressed(GLFW_KEY_ENTER)) {
         submit();
     }
@@ -103,16 +215,27 @@ void DevConsole::drawOverlay(int screenWidth, int screenHeight) {
     if (!active || !renderer) return;
     int fid = ensureFont();
     if (fid < 0) return;
-    float h = screenHeight * 0.35f;
+    float h = screenHeight * 0.45f;
     float y = screenHeight - h;
     renderer->drawRect(0, y, (float)screenWidth, h, 0.05f, 0.05f, 0.06f);
-    float textY = y + 8.0f;
-    for (size_t i = 0; i < lines.size(); ++i) {
-        renderer->drawTextEx(fid, lines[i], 8.0f, textY, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, "left", 0.0f, 0.0f);
-        textY += 14.0f;
-        if (textY > y + h - 30.0f) break;
+    float textY = y + 10.0f;
+    float lineStep = 16.0f * kConsoleFontScale;
+    int maxLines = (int)((h - 30.0f) / lineStep);
+    int start = 0;
+    if ((int)lines.size() > maxLines) {
+        start = (int)lines.size() - maxLines - scrollOffset;
+        if (start < 0) start = 0;
     }
-    std::string prompt = "> " + input + "_";
-    renderer->drawTextEx(fid, prompt, 8.0f, y + h - 20.0f, 1.0f, 1.0f, 0.9f, 0.6f, 1.0f, "left", 0.0f, 0.0f);
+    int end = std::min((int)lines.size(), start + maxLines);
+    for (int i = start; i < end; ++i) {
+        renderer->drawTextEx(fid, lines[i], 8.0f, textY, kConsoleFontScale, 1.0f, 1.0f, 1.0f, 1.0f, "left", 0.0f, 0.0f);
+        textY += lineStep;
+    }
+    std::string promptText = "> " + input;
+    float promptY = y + h - 24.0f;
+    renderer->drawTextEx(fid, promptText, 8.0f, promptY, kConsoleFontScale, 1.0f, 0.9f, 0.6f, 1.0f, "left", 0.0f, 0.0f);
+    std::string caretText = "> " + input.substr(0, cursorPos);
+    float caretX = 8.0f + renderer->measureTextWidth(fid, caretText, kConsoleFontScale, 0.0f, 0.0f);
+    renderer->drawRect(caretX, promptY + 2.0f, 10.0f, 3.0f, 1.0f, 0.9f, 0.6f);
 }
 }
