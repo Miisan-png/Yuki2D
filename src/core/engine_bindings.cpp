@@ -19,11 +19,13 @@
 #include <algorithm>
 #include <filesystem>
 #include <utility>
+#include <vector>
 namespace yuki {
 static Window* g_Window = nullptr;
 static Renderer2D* g_Renderer = nullptr;
 static Interpreter* g_Interpreter = nullptr;
 static std::string g_AssetBase;
+static std::vector<std::filesystem::path> g_ImportPaths;
 struct Area {
     float x, y, w, h;
     std::string tag;
@@ -96,6 +98,10 @@ void EngineBindings::init(Window* window, Renderer2D* renderer, Interpreter* int
 }
 void EngineBindings::setAssetBase(const std::string& base) {
     g_AssetBase = base;
+    if (!base.empty()) {
+        std::filesystem::path p(base);
+        g_ImportPaths.push_back(p);
+    }
 }
 
 static std::unordered_map<std::string, int> buildKeyMap() {
@@ -463,15 +469,26 @@ Value engineImport(const std::vector<Value>& args) {
     if (args.empty() || !g_Interpreter) return Value::nilVal();
     std::filesystem::path p(args[0].toString());
     if (p.extension().empty()) p.replace_extension(".ys");
-    if (!p.is_absolute() && !g_AssetBase.empty()) p = std::filesystem::path(g_AssetBase) / p;
-    std::error_code ec;
-    std::filesystem::path canon = std::filesystem::weakly_canonical(p, ec);
-    if (ec) canon = p;
-    std::string key = canon.string();
-    if (!std::filesystem::exists(canon)) {
-        logError("Import path not found: " + key);
+    std::vector<std::filesystem::path> candidates;
+    if (p.is_absolute()) candidates.push_back(p);
+    else {
+        for (const auto& base : g_ImportPaths) candidates.push_back(base / p);
+        candidates.push_back(p);
+        std::filesystem::path modulesDir = std::filesystem::path("scripts/modules") / p;
+        candidates.push_back(modulesDir);
+    }
+    std::filesystem::path found;
+    for (const auto& cand : candidates) {
+        if (std::filesystem::exists(cand)) { found = cand; break; }
+    }
+    if (found.empty()) {
+        logError("Import path not found: " + p.string());
         return Value::nilVal();
     }
+    std::error_code ec;
+    std::filesystem::path canon = std::filesystem::weakly_canonical(found, ec);
+    if (ec) canon = found;
+    std::string key = canon.string();
     std::optional<std::string> alias;
     if (args.size() > 1 && args[1].isString()) alias = args[1].toString();
     if (g_LoadedModules.count(key)) {

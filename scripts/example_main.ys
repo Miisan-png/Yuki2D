@@ -9,8 +9,9 @@ fn init() {
     var arr = [1, 2, 3];
     array_push(arr, 4);
     print("Array len:", array_len(arr), "item0:", array_get(arr, 0));
+    print("Index of 3:", array_index_of(arr, 3));
     var tbl = map("greeting", msg, "count", array_len(arr));
-    print("Map greeting:", map_get(tbl, "greeting"), "has count:", map_has(tbl, "count"));
+    print("Map greeting:", map_get(tbl, "greeting"), "has count:", map_has(tbl, "count"), "size:", map_size(tbl));
     font = load_font("../assets/fonts/monogram_bitmap.png", "../assets/fonts/monogram_bitmap.json");
     set_clear_color(0.08, 0.09, 0.12);
     print(msg);

@@ -13,15 +13,25 @@ namespace yuki {
     Value builtinArrayLen(const std::vector<Value>& args);
     Value builtinArrayGet(const std::vector<Value>& args);
     Value builtinArraySet(const std::vector<Value>& args);
+    Value builtinArraySlice(const std::vector<Value>& args);
+    Value builtinArrayConcat(const std::vector<Value>& args);
+    Value builtinArrayClear(const std::vector<Value>& args);
+    Value builtinArrayIndexOf(const std::vector<Value>& args);
     Value builtinMap(const std::vector<Value>& args);
     Value builtinMapSet(const std::vector<Value>& args);
     Value builtinMapGet(const std::vector<Value>& args);
     Value builtinMapHas(const std::vector<Value>& args);
     Value builtinMapKeys(const std::vector<Value>& args);
+    Value builtinMapValues(const std::vector<Value>& args);
+    Value builtinMapDelete(const std::vector<Value>& args);
+    Value builtinMapMerge(const std::vector<Value>& args);
+    Value builtinMapSize(const std::vector<Value>& args);
     Value builtinStrLen(const std::vector<Value>& args);
     Value builtinStrLower(const std::vector<Value>& args);
     Value builtinStrUpper(const std::vector<Value>& args);
     Value builtinStrSub(const std::vector<Value>& args);
     Value builtinStrFind(const std::vector<Value>& args);
     Value builtinJoin(const std::vector<Value>& args);
+    Value builtinStrReplace(const std::vector<Value>& args);
+    Value builtinStrSplit(const std::vector<Value>& args);
 }
