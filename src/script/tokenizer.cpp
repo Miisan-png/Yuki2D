@@ -25,7 +25,17 @@ std::vector<Token> Tokenizer::scanTokens() {
             case '+': tokens.push_back({TokenType::Plus, "+", startLine, startCol}); break;
             case '-': tokens.push_back({TokenType::Minus, "-", startLine, startCol}); break;
             case '*': tokens.push_back({TokenType::Star, "*", startLine, startCol}); break;
-            case '/': tokens.push_back({TokenType::Slash, "/", startLine, startCol}); break;
+            case '/':
+                if (current < source.size() && source[current] == '/') {
+                    // line comment, consume until newline
+                    while (current < source.size() && source[current] != '\n') {
+                        current++;
+                        col++;
+                    }
+                } else {
+                    tokens.push_back({TokenType::Slash, "/", startLine, startCol});
+                }
+                break;
             case '%': tokens.push_back({TokenType::Percent, "%", startLine, startCol}); break;
             case '=': 
                 if (current < source.size() && source[current] == '=') {

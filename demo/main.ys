@@ -1,6 +1,13 @@
 var font;
 import("util_module.ys");
 import("player.ys");
+var wall_id;
+var screen_w = 1280;
+var screen_h = 720;
+var npc_sheet;
+var half_w = 640;
+var half_h = 360;
+var dbg_timer = 0;
 
 fn init() {
     print("Loading font");
@@ -12,13 +19,37 @@ fn init() {
     var tbl = map("greeting", msg, "count", array_len(arr));
     print("Map greeting:", map_get(tbl, "greeting"), "has count:", map_has(tbl, "count"));
     font = load_font("../assets/fonts/monogram_bitmap.png", "../assets/fonts/monogram_bitmap.json");
+    var sz = get_screen_size();
+    if (map_has(sz, "w") and map_has(sz, "h")) {
+        screen_w = map_get(sz, "w");
+        screen_h = map_get(sz, "h");
+        half_w = screen_w * 0.5;
+        half_h = screen_h * 0.5;
+    }
     player_init();
+    player_set_position(half_w, half_h);
+    npc_sheet = load_sprite_sheet("asset_pack/characters/player.png", 48, 48);
+    wall_id = collider_create(300, 220, 120, 60, "wall", true);
     set_clear_color(0.08, 0.09, 0.12);
     print(msg);
 }
 
 fn update(dt) {
+    dbg_timer = dbg_timer + dt;
     player_update(dt);
+    var cx = player_get_x();
+    var cy = player_get_y();
+    player_draw();
+    draw_rect(300, 220, 120, 60, 0.2, 0.35, 0.5);
+    if (npc_sheet >= 0) {
+        draw_sprite_frame(npc_sheet, 0, 120, 200, 0, 2, 2, false, false, -1, -1, 1);
+        draw_sprite_frame(npc_sheet, 6, 200, 260, 0, 2, 2, true, false, -1, -1, 1);
+        draw_sprite_frame(npc_sheet, 12, 320, 180, 0, 2, 2, false, false, -1, -1, 1);
+    }
+    if (dbg_timer >= 0.25) {
+        dbg_timer = 0;
+        print("player:", cx, cy);
+    }
     var hp = player_get_hp();
     draw_text(font, "Yuki text demo", 16, 20, "scale", 2, "color", 1, 1, 0.85, 1);
     draw_text(font, "Wrapped and centered text that shows the new font pipeline in action.", 200, 90, "align", "center", "max_width", 220, "line_height", 14);

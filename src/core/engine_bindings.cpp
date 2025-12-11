@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <utility>
 #include <vector>
+#include <set>
 namespace yuki {
 static Window* g_Window = nullptr;
 static Renderer2D* g_Renderer = nullptr;
@@ -61,7 +62,16 @@ struct Animation {
 };
 static std::unordered_map<int, Animation> g_Animations;
 static int g_AnimationCounter = 1;
-enum class TweenTargetType { None, Sprite, Camera };
+struct Collider {
+    float x = 0.0f;
+    float y = 0.0f;
+    float w = 0.0f;
+    float h = 0.0f;
+    std::string tag;
+    bool solid = true;
+};
+static std::vector<Collider> g_Colliders;
+enum class TweenTargetType { None, Sprite };
 enum class TweenType { Value, Property };
 struct TweenTarget {
     TweenTargetType type = TweenTargetType::None;
@@ -226,6 +236,9 @@ static Animation* getAnimation(int id) {
     if (it == g_Animations.end()) return nullptr;
     return &it->second;
 }
+static bool rectsOverlap(float ax, float ay, float aw, float ah, float bx, float by, float bw, float bh) {
+    return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
 static double clamp01(double v) {
     if (v < 0.0) return 0.0;
     if (v > 1.0) return 1.0;
@@ -244,13 +257,6 @@ static double applyEasing(double t, const std::string& easing) {
 }
 static bool getPropertyValue(const TweenTarget& target, const std::string& prop, float& out) {
     if (!g_Renderer) return false;
-    if (target.type == TweenTargetType::Camera) {
-        if (prop == "x") { out = g_Renderer->getCameraX(); return true; }
-        if (prop == "y") { out = g_Renderer->getCameraY(); return true; }
-        if (prop == "zoom") { out = g_Renderer->getCameraZoom(); return true; }
-        if (prop == "rotation") { out = g_Renderer->getCameraRotation(); return true; }
-        return false;
-    }
     if (target.type == TweenTargetType::Sprite) {
         auto it = g_SpriteStates.find(target.id);
         if (it == g_SpriteStates.end()) return false;
@@ -267,13 +273,6 @@ static bool getPropertyValue(const TweenTarget& target, const std::string& prop,
 }
 static void setPropertyValue(const TweenTarget& target, const std::string& prop, float v) {
     if (!g_Renderer) return;
-    if (target.type == TweenTargetType::Camera) {
-        if (prop == "x") g_Renderer->setCamera(v, g_Renderer->getCameraY());
-        else if (prop == "y") g_Renderer->setCamera(g_Renderer->getCameraX(), v);
-        else if (prop == "zoom") g_Renderer->setCameraZoom(v);
-        else if (prop == "rotation") g_Renderer->setCameraRotation(v);
-        return;
-    }
     if (target.type == TweenTargetType::Sprite) {
         auto& s = g_SpriteStates[target.id];
         if (prop == "x") { s.x = v; s.overrideX = true; }
@@ -286,13 +285,7 @@ static void setPropertyValue(const TweenTarget& target, const std::string& prop,
 }
 static TweenTarget parseTarget(const Value& obj) {
     TweenTarget tgt;
-    if (obj.isString()) {
-        std::string name = obj.stringVal;
-        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c){ return (char)std::tolower(c); });
-        if (name == "camera") {
-            tgt.type = TweenTargetType::Camera;
-        }
-    } else if (obj.isNumber()) {
+    if (obj.isNumber()) {
         tgt.type = TweenTargetType::Sprite;
         tgt.id = (int)obj.numberVal;
     }
@@ -501,6 +494,21 @@ static void updateAnimations(double dt) {
         }
     }
 }
+static void debugDrawColliders() {
+    if (!g_Renderer) return;
+    if (!g_Renderer->isDebugEnabled()) return;
+    if (g_Colliders.empty()) return;
+    for (size_t i = 0; i < g_Colliders.size(); ++i) {
+        const auto& c = g_Colliders[i];
+        if (c.w <= 0.0f || c.h <= 0.0f) continue;
+        std::hash<std::string> h;
+        size_t hv = h(c.tag);
+        float r = ((hv >> 0) & 0xFF) / 255.0f;
+        float g = ((hv >> 8) & 0xFF) / 255.0f;
+        float b = ((hv >> 16) & 0xFF) / 255.0f;
+        g_Renderer->debugDrawRect(c.x, c.y, c.w, c.h, r, g, b);
+    }
+}
 void EngineBindings::update(double dt) {
     updateSequences(dt);
     updateParallels(dt);
@@ -508,6 +516,7 @@ void EngineBindings::update(double dt) {
     cleanupFinishedTweens();
     cleanupFinishedGroups();
     updateAnimations(dt);
+    debugDrawColliders();
 }
 Value engineLog(const std::vector<Value>& args) {
     std::string msg;
@@ -796,6 +805,96 @@ Value engineAnimDraw(const std::vector<Value>& args) {
     g_Renderer->drawSpriteFrame(anim->sheetId, frame, anim->transform.x, anim->transform.y, anim->transform.rotationDeg, anim->transform.scaleX, anim->transform.scaleY, anim->transform.flipX, anim->transform.flipY, anim->transform.originX, anim->transform.originY, anim->alpha);
     return Value::nilVal();
 }
+Value engineColliderCreate(const std::vector<Value>& args) {
+    if (args.size() < 4) return Value::number(-1);
+    Collider c;
+    c.x = (float)args[0].numberVal;
+    c.y = (float)args[1].numberVal;
+    c.w = (float)args[2].numberVal;
+    c.h = (float)args[3].numberVal;
+    if (args.size() >= 5 && args[4].isString()) c.tag = args[4].stringVal;
+    if (args.size() >= 6) c.solid = args[5].isBool() ? args[5].boolVal : (args[5].numberVal != 0);
+    g_Colliders.push_back(c);
+    return Value::number((int)g_Colliders.size() - 1);
+}
+Value engineColliderSetPos(const std::vector<Value>& args) {
+    if (args.size() < 3) return Value::nilVal();
+    int id = (int)args[0].numberVal;
+    if (id < 0 || id >= (int)g_Colliders.size()) return Value::nilVal();
+    g_Colliders[id].x = (float)args[1].numberVal;
+    g_Colliders[id].y = (float)args[2].numberVal;
+    return Value::nilVal();
+}
+Value engineColliderSetSize(const std::vector<Value>& args) {
+    if (args.size() < 3) return Value::nilVal();
+    int id = (int)args[0].numberVal;
+    if (id < 0 || id >= (int)g_Colliders.size()) return Value::nilVal();
+    g_Colliders[id].w = (float)args[1].numberVal;
+    g_Colliders[id].h = (float)args[2].numberVal;
+    return Value::nilVal();
+}
+Value engineColliderGetPos(const std::vector<Value>& args) {
+    if (args.empty()) return Value::map({});
+    int id = (int)args[0].numberVal;
+    if (id < 0 || id >= (int)g_Colliders.size()) return Value::map({});
+    std::unordered_map<std::string, Value> m;
+    m["x"] = Value::number(g_Colliders[id].x);
+    m["y"] = Value::number(g_Colliders[id].y);
+    return Value::map(m);
+}
+Value engineColliderGetSize(const std::vector<Value>& args) {
+    if (args.empty()) return Value::map({});
+    int id = (int)args[0].numberVal;
+    if (id < 0 || id >= (int)g_Colliders.size()) return Value::map({});
+    std::unordered_map<std::string, Value> m;
+    m["w"] = Value::number(g_Colliders[id].w);
+    m["h"] = Value::number(g_Colliders[id].h);
+    return Value::map(m);
+}
+Value engineColliderMove(const std::vector<Value>& args) {
+    if (args.size() < 3) return Value::array({});
+    int id = (int)args[0].numberVal;
+    if (id < 0 || id >= (int)g_Colliders.size()) return Value::array({});
+    float dx = (float)args[1].numberVal;
+    float dy = (float)args[2].numberVal;
+    Collider& c = g_Colliders[id];
+    float nx = c.x + dx;
+    float ny = c.y + dy;
+    std::set<int> hits;
+    for (size_t i = 0; i < g_Colliders.size(); ++i) {
+        if ((int)i == id) continue;
+        const Collider& o = g_Colliders[i];
+        if (!rectsOverlap(nx, c.y, c.w, c.h, o.x, o.y, o.w, o.h)) continue;
+        if (c.solid && o.solid) {
+            if (dx > 0.0f) nx = std::min(nx, o.x - c.w);
+            else if (dx < 0.0f) nx = std::max(nx, o.x + o.w);
+        }
+        hits.insert((int)i);
+    }
+    c.x = nx;
+    for (size_t i = 0; i < g_Colliders.size(); ++i) {
+        if ((int)i == id) continue;
+        const Collider& o = g_Colliders[i];
+        if (!rectsOverlap(c.x, ny, c.w, c.h, o.x, o.y, o.w, o.h)) continue;
+        if (c.solid && o.solid) {
+            if (dy > 0.0f) ny = std::min(ny, o.y - c.h);
+            else if (dy < 0.0f) ny = std::max(ny, o.y + o.h);
+        }
+        hits.insert((int)i);
+    }
+    c.y = ny;
+
+    std::vector<Value> arr;
+    arr.reserve(hits.size());
+    for (int hid : hits) {
+        if (hid < 0 || hid >= (int)g_Colliders.size()) continue;
+        std::unordered_map<std::string, Value> m;
+        m["id"] = Value::number(hid);
+        m["tag"] = Value::string(g_Colliders[hid].tag);
+        arr.push_back(Value::map(m));
+    }
+    return Value::array(arr);
+}
 Value engineDrawText(const std::vector<Value>& args) {
     if (args.size() < 4 || !g_Renderer) return Value::nilVal();
     int fontId = (int)args[0].numberVal;
@@ -943,30 +1042,6 @@ Value engineMeasureTextHeight(const std::vector<Value>& args) {
         if (args.size() > 4 && args[4].isNumber()) lineHeight = args[4].numberVal;
     }
     return Value::number(g_Renderer->measureTextHeight(fontId, text, scale, maxWidth, lineHeight));
-}
-Value engineSetCameraPos(const std::vector<Value>& args) {
-    if (args.size() >= 2 && g_Renderer) {
-        g_Renderer->setCamera((float)args[0].numberVal, (float)args[1].numberVal);
-    }
-    return Value::nilVal();
-}
-Value engineSetCameraZoom(const std::vector<Value>& args) {
-    if (args.size() >= 1 && g_Renderer) {
-        g_Renderer->setCameraZoom((float)args[0].numberVal);
-    }
-    return Value::nilVal();
-}
-Value engineGetCameraPosX(const std::vector<Value>&) {
-    if (!g_Renderer) return Value::number(0);
-    return Value::number(g_Renderer->getCameraX());
-}
-Value engineGetCameraPosY(const std::vector<Value>&) {
-    if (!g_Renderer) return Value::number(0);
-    return Value::number(g_Renderer->getCameraY());
-}
-Value engineGetCameraZoom(const std::vector<Value>&) {
-    if (!g_Renderer) return Value::number(1.0);
-    return Value::number(g_Renderer->getCameraZoom());
 }
 Value engineSetDebugDrawEnabled(const std::vector<Value>& args) {
     if (args.size() >= 1 && g_Renderer) {
@@ -1441,11 +1516,12 @@ void EngineBindings::registerBuiltins(std::unordered_map<std::string, NativeFn>&
     builtins["anim_set_flip"] = engineAnimSetFlip;
     builtins["anim_set_alpha"] = engineAnimSetAlpha;
     builtins["anim_draw"] = engineAnimDraw;
-    builtins["set_camera_position"] = engineSetCameraPos;
-    builtins["set_camera_zoom"] = engineSetCameraZoom;
-    builtins["get_camera_x"] = engineGetCameraPosX;
-    builtins["get_camera_y"] = engineGetCameraPosY;
-    builtins["get_camera_zoom"] = engineGetCameraZoom;
+    builtins["collider_create"] = engineColliderCreate;
+    builtins["collider_set_position"] = engineColliderSetPos;
+    builtins["collider_set_size"] = engineColliderSetSize;
+    builtins["collider_get_position"] = engineColliderGetPos;
+    builtins["collider_get_size"] = engineColliderGetSize;
+    builtins["collider_move"] = engineColliderMove;
     builtins["set_debug_draw_enabled"] = engineSetDebugDrawEnabled;
     builtins["debug_draw_rect"] = engineDebugDrawRect;
     builtins["debug_draw_line"] = engineDebugDrawLine;
@@ -1483,6 +1559,15 @@ void EngineBindings::registerBuiltins(std::unordered_map<std::string, NativeFn>&
     builtins["flash"] = engineFlash;
     builtins["rect_overlaps"] = engineRectOverlaps;
     builtins["point_in_rect"] = enginePointInRect;
+    builtins["get_screen_size"] = [](const std::vector<Value>&)->Value {
+        if (!g_Window) return Value::map({});
+        int w = 0, h = 0;
+        g_Window->getFramebufferSize(w, h);
+        std::unordered_map<std::string, Value> m;
+        m["w"] = Value::number((double)w);
+        m["h"] = Value::number((double)h);
+        return Value::map(m);
+    };
     builtins["create_area_rect"] = engineCreateAreaRect;
     builtins["set_area_rect"] = engineSetAreaRect;
     builtins["area_overlaps"] = engineAreaOverlaps;

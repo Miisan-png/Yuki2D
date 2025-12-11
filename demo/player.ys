@@ -11,6 +11,11 @@ var x = 200;
 var y = 200;
 var speed = 140;
 var facing = "down";
+var col_id = -1;
+var col_w = 32;
+var col_h = 32;
+var sprite_half = 48;
+var col_offset_y = 4;
 
 fn row_frames(row) {
     var frames = array();
@@ -45,6 +50,15 @@ fn player_init() {
     anim_set_scale(move_right, 2, 2);
     anim_set_scale(move_up, 2, 2);
     active_anim = idle_down;
+    col_id = collider_create(x - col_w * 0.5, y - col_h * 0.5, col_w, col_h, "player", true);
+}
+
+fn player_set_position(px, py) {
+    x = px;
+    y = py;
+    if (col_id >= 0) {
+        collider_set_position(col_id, x - col_w * 0.5, y - col_h * 0.5 + col_offset_y);
+    }
 }
 
 fn player_handle_input(dt) {
@@ -60,14 +74,24 @@ fn player_handle_input(dt) {
             move_x = move_x * 0.7071;
             move_y = move_y * 0.7071;
         }
-        x = x + move_x * speed * dt;
-        y = y + move_y * speed * dt;
+        var dx = move_x * speed * dt;
+        var dy = move_y * speed * dt;
+        if (col_id >= 0) { collider_move(col_id, dx, dy); }
+        else {
+            x = x + dx;
+            y = y + dy;
+        }
         if (abs(move_x) > abs(move_y)) {
             if (move_x > 0) { facing = "right"; }
             else { facing = "left"; }
         } else {
             if (move_y > 0) { facing = "down"; }
             else { facing = "up"; }
+        }
+        if (col_id >= 0) {
+            var pos = collider_get_position(col_id);
+            x = map_get(pos, "x") + col_w * 0.5;
+            y = map_get(pos, "y") + col_h * 0.5;
         }
     }
     return moving;
@@ -102,22 +126,43 @@ fn player_update(dt) {
     anim_set_flip(move_right, flip_side, false);
     anim_set_flip(move_up, false, false);
 
-    anim_set_position(idle_down, x, y);
-    anim_set_position(idle_right, x, y);
-    anim_set_position(idle_up, x, y);
-    anim_set_position(move_down, x, y);
-    anim_set_position(move_right, x, y);
-    anim_set_position(move_up, x, y);
+    var sx = x - sprite_half;
+    var sy = y - sprite_half;
+    anim_set_position(idle_down, sx, sy);
+    anim_set_position(idle_right, sx, sy);
+    anim_set_position(idle_up, sx, sy);
+    anim_set_position(move_down, sx, sy);
+    anim_set_position(move_right, sx, sy);
+    anim_set_position(move_up, sx, sy);
+}
 
+fn player_draw() {
     anim_draw(active_anim);
+    var left = x - col_w * 0.5;
+    var top = y - col_h * 0.5 + col_offset_y;
+    var thick = 2;
+    draw_rect(left - thick, top - thick, col_w + thick * 2, thick, 0.1, 0.9, 0.1);
+    draw_rect(left - thick, top + col_h, col_w + thick * 2, thick, 0.1, 0.9, 0.1);
+    draw_rect(left - thick, top, thick, col_h, 0.1, 0.9, 0.1);
+    draw_rect(left + col_w, top, thick, col_h, 0.1, 0.9, 0.1);
 }
 
 fn player_get_hp() { return player_hp; }
 fn player_set_hp(v) { player_hp = v; }
+fn player_get_position() {
+    return map("x", x, "y", y);
+}
+fn player_get_x() { return x; }
+fn player_get_y() { return y; }
 
 exports = map(
     "init", player_init,
     "update", player_update,
     "get_hp", player_get_hp,
-    "set_hp", player_set_hp
+    "set_hp", player_set_hp,
+    "get_position", player_get_position,
+    "get_x", player_get_x,
+    "get_y", player_get_y,
+    "set_position", player_set_position,
+    "draw", player_draw
 );

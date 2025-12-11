@@ -624,15 +624,8 @@ void Renderer2D::flush(int screenWidth, int screenHeight) {
 
     glViewport(0, 0, screenWidth, screenHeight);
     Mat4 proj = ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f, -1.0f, 1.0f);
-    Mat4 view = identity();
-    Mat4 s = scale(camZoom, camZoom, 1.0f);
-    Mat4 t = translate(-camX, -camY, 0.0f);
-    Mat4 r = rotateZ(-camRot);
-    view = mul(mul(s, t), r);
-    Mat4 mvp = mul(proj, view);
 
     glUseProgram(shaderProgram);
-    glUniformMatrix4fv(uniformMvp, 1, GL_FALSE, mvp.m);
     glActiveTexture(GL_TEXTURE0);
     glUniform1i(uniformTex, 0);
     glEnable(GL_BLEND);
@@ -652,7 +645,6 @@ void Renderer2D::flush(int screenWidth, int screenHeight) {
     batch.reserve((buffer.size() + debugBuffer.size()) * 6);
     unsigned int currentTex = 0;
     GLenum currentMode = GL_TRIANGLES;
-
     auto flushBatch = [&](GLenum mode, unsigned int tex) {
         if (batch.empty()) return;
         glBindTexture(GL_TEXTURE_2D, tex);
@@ -660,6 +652,16 @@ void Renderer2D::flush(int screenWidth, int screenHeight) {
         glDrawArrays(mode, 0, (int)batch.size());
         batch.clear();
     };
+    auto setCameraUniform = [&](float cx, float cy, float cz, float cr) {
+        Mat4 s = scale(cz, cz, 1.0f);
+        Mat4 r = rotateZ(-cr);
+        Mat4 t = translate(-cx, -cy, 0.0f);
+        Mat4 view = mul(t, mul(r, s));
+        Mat4 mvp = mul(proj, view);
+        glUniformMatrix4fv(uniformMvp, 1, GL_FALSE, mvp.m);
+    };
+
+    setCameraUniform(camX, camY, camZoom, camRot);
 
     if (hasRender) {
         for (const auto& cmd : buffer) {
