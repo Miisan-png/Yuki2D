@@ -1,0 +1,7 @@
+fn greet(name) {
+    print("Hello from module, " + name);
+}
+
+fn get_message() {
+    return "ewaewe.";
+}

@@ -26,6 +26,7 @@ public:
     Value callFunction(FunctionValue* fn, const std::vector<Value>& args);
     Value callFunction(const Value& fn, const std::vector<Value>& args);
     Value exec(const std::vector<std::unique_ptr<Stmt>>& statements);
+    void retainModule(std::vector<std::unique_ptr<Stmt>>&& statements);
     bool hasRuntimeErrors() const { return !runtimeErrors.empty(); }
     const std::vector<std::string>& getRuntimeErrors() const { return runtimeErrors; }
     
@@ -41,6 +42,8 @@ private:
     std::unordered_map<std::string, NativeFn> builtins;
     std::vector<FunctionValue*> allocatedFunctions;
     std::vector<std::string> runtimeErrors;
+    std::vector<std::string> callStack;
+    std::vector<std::vector<std::unique_ptr<Stmt>>> ownedModules;
 };
 
 }

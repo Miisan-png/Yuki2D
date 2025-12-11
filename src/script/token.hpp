@@ -15,6 +15,8 @@ enum class TokenType {
 struct Token {
     TokenType type;
     std::string text;
+    int line = 1;
+    int column = 1;
 };
 class Tokenizer {
 public:

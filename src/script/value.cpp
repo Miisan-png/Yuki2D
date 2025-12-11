@@ -42,7 +42,13 @@ Value Value::function(FunctionValue* val) {
 Value Value::map(const std::unordered_map<std::string, Value>& val) {
     Value v;
     v.type = ValueType::Map;
-    v.mapVal = val;
+    v.mapPtr = std::make_shared<std::unordered_map<std::string, Value>>(val);
+    return v;
+}
+Value Value::array(const std::vector<Value>& val) {
+    Value v;
+    v.type = ValueType::Array;
+    v.arrayPtr = std::make_shared<std::vector<Value>>(val);
     return v;
 }
 
@@ -68,6 +74,9 @@ bool Value::isFunction() const {
 bool Value::isMap() const {
     return type == ValueType::Map;
 }
+bool Value::isArray() const {
+    return type == ValueType::Array;
+}
 
 std::string Value::toString() const {
     switch (type) {
@@ -76,6 +85,7 @@ std::string Value::toString() const {
         case ValueType::String:   return stringVal;
         case ValueType::Function: return "<function " + (functionVal ? functionVal->name : "") + ">";
         case ValueType::Map:      return "<map>";
+        case ValueType::Array:    return "<array>";
         default:                  return "nil";
     }
 }

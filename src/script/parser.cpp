@@ -348,7 +348,8 @@ Token Parser::consume(TokenType type, const std::string& message) {
 }
 
 void Parser::error(Token token, const std::string& message) {
-    std::string msg = "[Parser] at '" + token.text + "': " + message;
+    std::string loc = "line " + std::to_string(token.line) + ", col " + std::to_string(token.column);
+    std::string msg = "[Parser] " + loc + " at '" + token.text + "': " + message;
     errors.push_back(msg);
     std::cerr << msg << std::endl;
 }

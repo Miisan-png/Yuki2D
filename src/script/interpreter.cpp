@@ -50,6 +50,8 @@ Value Interpreter::callFunction(FunctionValue* fn, const std::vector<Value>& arg
         if (fn->nativeFn) return fn->nativeFn(args);
         return Value::nilVal();
     }
+    std::string frameName = fn->name.empty() ? "<anon>" : fn->name;
+    callStack.push_back(frameName);
 
     std::shared_ptr<Environment> closure = std::make_shared<Environment>(fn->closure);
     for (size_t i = 0; i < fn->parameters.size(); ++i) {
@@ -75,6 +77,7 @@ Value Interpreter::callFunction(FunctionValue* fn, const std::vector<Value>& arg
     }
     
     env = previous;
+    callStack.pop_back();
     return ret;
 }
 
@@ -270,9 +273,20 @@ Value Interpreter::exec(const std::vector<std::unique_ptr<Stmt>>& statements) {
     return Value::nilVal();
 }
 
+void Interpreter::retainModule(std::vector<std::unique_ptr<Stmt>>&& statements) {
+    ownedModules.push_back(std::move(statements));
+}
+
 void Interpreter::reportRuntimeError(const std::string& message) {
-    runtimeErrors.push_back(message);
-    logError(message);
+    std::string msg = message;
+    if (!callStack.empty()) {
+        msg += "\nStack trace:";
+        for (auto it = callStack.rbegin(); it != callStack.rend(); ++it) {
+            msg += "\n  at " + *it;
+        }
+    }
+    runtimeErrors.push_back(msg);
+    logError(msg);
 }
 
 }

@@ -4,6 +4,10 @@
 #include "log.hpp"
 #include "../script/value.hpp"
 #include "../script/interpreter.hpp"
+#include "../script/yuki_script_loader.hpp"
+#include "../script/token.hpp"
+#include "../script/parser.hpp"
+#include "../script/ast.hpp"
 #include "input.hpp"
 #include <GLFW/glfw3.h>
 #include <cstdlib>
@@ -453,6 +457,36 @@ Value engineLog(const std::vector<Value>& args) {
     printf("[INFO] %s\n", msg.c_str());
     return Value::nilVal();
 }
+Value engineImport(const std::vector<Value>& args) {
+    if (args.empty() || !g_Interpreter) return Value::nilVal();
+    std::filesystem::path p(args[0].toString());
+    if (!p.is_absolute() && !g_AssetBase.empty()) {
+        p = std::filesystem::path(g_AssetBase) / p;
+    }
+    logInfo("Importing " + p.string());
+    ScriptLoader loader(p.string());
+    std::string content = loader.load();
+    Tokenizer tokenizer(content);
+    std::vector<Token> tokens = tokenizer.scanTokens();
+    Parser parser(tokens);
+    std::vector<std::unique_ptr<Stmt>> statements = parser.parse();
+    if (parser.hadError()) {
+        for (const auto& err : parser.getErrors()) {
+            logError(err);
+        }
+        return Value::nilVal();
+    }
+    logInfo("Executing module " + p.string());
+    g_Interpreter->exec(statements);
+    if (g_Interpreter->hasRuntimeErrors()) {
+        for (const auto& err : g_Interpreter->getRuntimeErrors()) {
+            logError(err);
+        }
+        return Value::nilVal();
+    }
+    g_Interpreter->retainModule(std::move(statements));
+    return Value::nilVal();
+}
 Value engineTime(const std::vector<Value>&) {
     return Value::number(glfwGetTime());
 }
@@ -542,14 +576,58 @@ Value engineDrawText(const std::vector<Value>& args) {
     std::string align = "left";
     float maxWidth = 0.0f;
     float lineHeight = 0.0f;
-    if (args.size() >= 5 && args[4].isNumber()) scale = args[4].numberVal;
-    if (args.size() >= 6 && args[5].isNumber()) r = args[5].numberVal;
-    if (args.size() >= 7 && args[6].isNumber()) g = args[6].numberVal;
-    if (args.size() >= 8 && args[7].isNumber()) b = args[7].numberVal;
-    if (args.size() >= 9 && args[8].isNumber()) a = args[8].numberVal;
-    if (args.size() >= 10 && args[9].isString()) align = args[9].toString();
-    if (args.size() >= 11 && args[10].isNumber()) maxWidth = args[10].numberVal;
-    if (args.size() >= 12 && args[11].isNumber()) lineHeight = args[11].numberVal;
+    size_t i = 4;
+    bool usedKv = false;
+    if (i < args.size() && args[i].isString()) {
+        while (i < args.size() && args[i].isString()) {
+            std::string key = args[i].toString();
+            std::transform(key.begin(), key.end(), key.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+            if (key == "scale" && i + 1 < args.size() && args[i + 1].isNumber()) {
+                scale = args[i + 1].numberVal;
+                i += 2;
+                usedKv = true;
+                continue;
+            }
+            if (key == "color" && i + 4 < args.size()) {
+                if (args[i + 1].isNumber()) r = args[i + 1].numberVal;
+                if (args[i + 2].isNumber()) g = args[i + 2].numberVal;
+                if (args[i + 3].isNumber()) b = args[i + 3].numberVal;
+                if (args[i + 4].isNumber()) a = args[i + 4].numberVal;
+                i += 5;
+                usedKv = true;
+                continue;
+            }
+            if (key == "align" && i + 1 < args.size() && args[i + 1].isString()) {
+                align = args[i + 1].toString();
+                i += 2;
+                usedKv = true;
+                continue;
+            }
+            if (key == "max_width" && i + 1 < args.size() && args[i + 1].isNumber()) {
+                maxWidth = args[i + 1].numberVal;
+                i += 2;
+                usedKv = true;
+                continue;
+            }
+            if (key == "line_height" && i + 1 < args.size() && args[i + 1].isNumber()) {
+                lineHeight = args[i + 1].numberVal;
+                i += 2;
+                usedKv = true;
+                continue;
+            }
+            break;
+        }
+    }
+    if (!usedKv) {
+        if (args.size() >= 5 && args[4].isNumber()) scale = args[4].numberVal;
+        if (args.size() >= 6 && args[5].isNumber()) r = args[5].numberVal;
+        if (args.size() >= 7 && args[6].isNumber()) g = args[6].numberVal;
+        if (args.size() >= 8 && args[7].isNumber()) b = args[7].numberVal;
+        if (args.size() >= 9 && args[8].isNumber()) a = args[8].numberVal;
+        if (args.size() >= 10 && args[9].isString()) align = args[9].toString();
+        if (args.size() >= 11 && args[10].isNumber()) maxWidth = args[10].numberVal;
+        if (args.size() >= 12 && args[11].isNumber()) lineHeight = args[11].numberVal;
+    }
     g_Renderer->drawTextEx(fontId, text, x, y, scale, r, g, b, a, align, maxWidth, lineHeight);
     return Value::nilVal();
 }
@@ -557,18 +635,82 @@ Value engineMeasureTextWidth(const std::vector<Value>& args) {
     if (args.size() < 2 || !g_Renderer) return Value::number(0);
     int fontId = (int)args[0].numberVal;
     std::string text = args[1].toString();
-    float scale = args.size() > 2 && args[2].isNumber() ? args[2].numberVal : 1.0f;
-    float maxWidth = args.size() > 3 && args[3].isNumber() ? args[3].numberVal : 0.0f;
-    float lineHeight = args.size() > 4 && args[4].isNumber() ? args[4].numberVal : 0.0f;
+    float scale = 1.0f;
+    float maxWidth = 0.0f;
+    float lineHeight = 0.0f;
+    size_t i = 2;
+    bool usedKv = false;
+    if (i < args.size() && args[i].isString()) {
+        while (i < args.size() && args[i].isString()) {
+            std::string key = args[i].toString();
+            std::transform(key.begin(), key.end(), key.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+            if (key == "scale" && i + 1 < args.size() && args[i + 1].isNumber()) {
+                scale = args[i + 1].numberVal;
+                i += 2;
+                usedKv = true;
+                continue;
+            }
+            if (key == "max_width" && i + 1 < args.size() && args[i + 1].isNumber()) {
+                maxWidth = args[i + 1].numberVal;
+                i += 2;
+                usedKv = true;
+                continue;
+            }
+            if (key == "line_height" && i + 1 < args.size() && args[i + 1].isNumber()) {
+                lineHeight = args[i + 1].numberVal;
+                i += 2;
+                usedKv = true;
+                continue;
+            }
+            break;
+        }
+    }
+    if (!usedKv) {
+        if (args.size() > 2 && args[2].isNumber()) scale = args[2].numberVal;
+        if (args.size() > 3 && args[3].isNumber()) maxWidth = args[3].numberVal;
+        if (args.size() > 4 && args[4].isNumber()) lineHeight = args[4].numberVal;
+    }
     return Value::number(g_Renderer->measureTextWidth(fontId, text, scale, maxWidth, lineHeight));
 }
 Value engineMeasureTextHeight(const std::vector<Value>& args) {
     if (args.size() < 2 || !g_Renderer) return Value::number(0);
     int fontId = (int)args[0].numberVal;
     std::string text = args[1].toString();
-    float scale = args.size() > 2 && args[2].isNumber() ? args[2].numberVal : 1.0f;
-    float maxWidth = args.size() > 3 && args[3].isNumber() ? args[3].numberVal : 0.0f;
-    float lineHeight = args.size() > 4 && args[4].isNumber() ? args[4].numberVal : 0.0f;
+    float scale = 1.0f;
+    float maxWidth = 0.0f;
+    float lineHeight = 0.0f;
+    size_t i = 2;
+    bool usedKv = false;
+    if (i < args.size() && args[i].isString()) {
+        while (i < args.size() && args[i].isString()) {
+            std::string key = args[i].toString();
+            std::transform(key.begin(), key.end(), key.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+            if (key == "scale" && i + 1 < args.size() && args[i + 1].isNumber()) {
+                scale = args[i + 1].numberVal;
+                i += 2;
+                usedKv = true;
+                continue;
+            }
+            if (key == "max_width" && i + 1 < args.size() && args[i + 1].isNumber()) {
+                maxWidth = args[i + 1].numberVal;
+                i += 2;
+                usedKv = true;
+                continue;
+            }
+            if (key == "line_height" && i + 1 < args.size() && args[i + 1].isNumber()) {
+                lineHeight = args[i + 1].numberVal;
+                i += 2;
+                usedKv = true;
+                continue;
+            }
+            break;
+        }
+    }
+    if (!usedKv) {
+        if (args.size() > 2 && args[2].isNumber()) scale = args[2].numberVal;
+        if (args.size() > 3 && args[3].isNumber()) maxWidth = args[3].numberVal;
+        if (args.size() > 4 && args[4].isNumber()) lineHeight = args[4].numberVal;
+    }
     return Value::number(g_Renderer->measureTextHeight(fontId, text, scale, maxWidth, lineHeight));
 }
 Value engineSetCameraPos(const std::vector<Value>& args) {
@@ -1042,6 +1184,7 @@ Value engineAreaExitedTag(const std::vector<Value>& args) {
 }
 void EngineBindings::registerBuiltins(std::unordered_map<std::string, NativeFn>& builtins) {
     builtins["engine_log"] = engineLog;
+    builtins["import"] = engineImport;
     builtins["time"] = engineTime;
     builtins["random"] = engineRandom;
     builtins["set_clear_color"] = engineSetClearColor;

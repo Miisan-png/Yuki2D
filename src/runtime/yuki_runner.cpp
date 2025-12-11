@@ -42,6 +42,7 @@ void YukiRunner::run(Window& window) {
     Value initFn = Value::nilVal();
     Value updateFn = Value::nilVal();
     interpreter.exec(statements);
+    interpreter.retainModule(std::move(statements));
     if (interpreter.hasRuntimeErrors()) {
         return;
     }
