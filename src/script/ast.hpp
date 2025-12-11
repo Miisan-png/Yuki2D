@@ -10,8 +10,8 @@ namespace yuki {
 struct Expr;
 struct Stmt;
 struct Literal;
-struct Variable;
-struct Assign;
+struct VarExpr; // Renamed from Variable
+struct AssignExpr; // Renamed from Assign
 struct Binary;
 struct Call;
 struct ExpressionStmt;
@@ -24,8 +24,8 @@ struct WhileStmt;
 
 enum class ExprKind {
     Literal,
-    Variable,
-    Assign,
+    VarExpr, // Renamed
+    AssignExpr, // Renamed
     Binary,
     Call
 };
@@ -55,37 +55,30 @@ struct Stmt {
 // Expressions
 
 struct Literal : Expr {
-    std::string value; // Storing as string to be parsed at runtime by Interpreter/Value
+    std::string value;
     Literal(const std::string& value) : value(value) {}
     ExprKind getKind() const override { return ExprKind::Literal; }
 };
 
-struct Variable : Expr {
+struct VarExpr : Expr {
     std::string name;
-    Variable(const std::string& name) : name(name) {}
-    ExprKind getKind() const override { return ExprKind::Variable; }
+    VarExpr(const std::string& name) : name(name) {}
+    ExprKind getKind() const override { return ExprKind::VarExpr; }
 };
 
-struct Assign : Expr {
+struct AssignExpr : Expr {
     std::string name;
     std::unique_ptr<Expr> value;
-    Assign(const std::string& name, std::unique_ptr<Expr> value)
+    AssignExpr(const std::string& name, std::unique_ptr<Expr> value)
         : name(name), value(std::move(value)) {}
-    ExprKind getKind() const override { return ExprKind::Assign; }
+    ExprKind getKind() const override { return ExprKind::AssignExpr; }
 };
 
 struct Binary : Expr {
     std::unique_ptr<Expr> left;
-    // We assume TokenType is defined in token.hpp, but here we just need the operator token
-    // For simplicity in this header, we can store the operator as a struct or include token.hpp
-    // To minimize dependencies in AST, we usually include token.hpp
     struct Op { int type; std::string lexeme; } op; 
     std::unique_ptr<Expr> right;
     
-    // Constructor matching typical parser usage. 
-    // We'll use a simplified Op struct if Token isn't available, but let's assume we can include "token.hpp"
-    // However, to keep this file standalone as requested, I'll allow the Op to be passed.
-    // Ideally, include "token.hpp".
     Binary(std::unique_ptr<Expr> left, int opType, std::string opLexeme, std::unique_ptr<Expr> right)
         : left(std::move(left)), op{opType, opLexeme}, right(std::move(right)) {}
     ExprKind getKind() const override { return ExprKind::Binary; }
@@ -99,7 +92,7 @@ struct Call : Expr {
     ExprKind getKind() const override { return ExprKind::Call; }
 };
 
-// Statements
+// Statements (Unchanged logic, just ensure consistency)
 
 struct ExpressionStmt : Stmt {
     std::unique_ptr<Expr> expression;

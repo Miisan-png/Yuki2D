@@ -6,7 +6,7 @@ enum class TokenType {
     Identifier, Number, String,
     LeftParen, RightParen, LeftBrace, RightBrace,
     Comma, Colon, Semicolon,
-    Plus, Minus, Star, Slash, Equal,
+    Plus, Minus, Star, Slash, Percent, Equal,
     EqualEqual, BangEqual, Less, LessEqual, Greater, GreaterEqual,
     True, False,
     Eof

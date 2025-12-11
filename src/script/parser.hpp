@@ -17,7 +17,6 @@ private:
     const std::vector<Token>& tokens;
     int current = 0;
 
-    // Statement parsing
     std::unique_ptr<Stmt> declaration();
     std::unique_ptr<Stmt> funDecl();
     std::unique_ptr<Stmt> varDecl();
@@ -26,9 +25,8 @@ private:
     std::unique_ptr<Stmt> whileStatement();
     std::unique_ptr<Stmt> returnStatement();
     std::unique_ptr<Stmt> exprStmt();
-    std::unique_ptr<Block> block(); // Parses { ... } and returns Block node
+    std::unique_ptr<Block> block();
 
-    // Expression parsing
     std::unique_ptr<Expr> expression();
     std::unique_ptr<Expr> assignment();
     std::unique_ptr<Expr> logicOr();
@@ -42,7 +40,6 @@ private:
     std::unique_ptr<Expr> finishCall(std::unique_ptr<Expr> callee);
     std::unique_ptr<Expr> primary();
 
-    // Helpers
     bool match(const std::vector<TokenType>& types);
     bool matchKeyword(const std::string& keyword);
     bool check(TokenType type);

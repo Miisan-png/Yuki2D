@@ -11,12 +11,12 @@ std::string printExpr(const Expr* expr) {
             const auto* l = static_cast<const Literal*>(expr);
             return l->value;
         }
-        case ExprKind::Variable: {
-            const auto* v = static_cast<const Variable*>(expr);
+        case ExprKind::VarExpr: { // Renamed from Variable
+            const auto* v = static_cast<const VarExpr*>(expr); // Renamed type
             return v->name;
         }
-        case ExprKind::Assign: {
-            const auto* a = static_cast<const Assign*>(expr);
+        case ExprKind::AssignExpr: { // Renamed from Assign
+            const auto* a = static_cast<const AssignExpr*>(expr); // Renamed type
             return "(" + a->name + " = " + printExpr(a->value.get()) + ")";
         }
         case ExprKind::Binary: {

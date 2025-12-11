@@ -3,6 +3,8 @@
 #include "../core/log.hpp"
 #include "../core/time.hpp"
 #include "../core/input.hpp"
+#include "../core/engine_bindings.hpp"
+#include "../core/renderer2d.hpp"
 #include "../script/token.hpp"
 #include "../script/parser.hpp"
 #include "../script/ast.hpp"
@@ -11,54 +13,42 @@
 #include <vector>
 #include <GLFW/glfw3.h>
 #include <optional>
-
 namespace yuki {
-
 YukiRunner::YukiRunner(const std::string& scriptPath) : scriptPath(scriptPath) {}
-
 void YukiRunner::run(Window& window) {
     ScriptLoader loader(scriptPath);
     std::string content = loader.load();
-    
     Tokenizer tokenizer(content);
     std::vector<Token> tokens = tokenizer.scanTokens();
-    
     Parser parser(tokens);
     std::vector<std::unique_ptr<Stmt>> statements = parser.parse();
-    
     Interpreter interpreter;
-    
+    Renderer2D renderer;
+    EngineBindings::init(&window, &renderer);
     Value initFn = Value::nilVal();
     Value updateFn = Value::nilVal();
-    
     interpreter.exec(statements);
-    
     auto initVal = interpreter.env->get("init");
     auto updateVal = interpreter.env->get("update");
-    
     if (initVal.has_value()) initFn = initVal.value();
     if (updateVal.has_value()) updateFn = updateVal.value();
-    
     if (initFn.isFunction()) {
         std::vector<Value> noArgs;
         interpreter.callFunction(initFn, noArgs);
     }
-    
     Time time;
-    
     while (!window.shouldClose()) {
         time.update();
         float dt = time.deltaTime();
-        
+        window.clear();
         if (updateFn.isFunction()) {
             std::vector<Value> args;
             args.push_back(Value::number(dt));
             interpreter.callFunction(updateFn, args);
         }
-        
-        window.pollEvents();
+        renderer.flush(window.getWidth(), window.getHeight());
         window.swapBuffers();
+        window.pollEvents();
     }
 }
-
 }

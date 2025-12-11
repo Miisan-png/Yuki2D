@@ -2,8 +2,6 @@
 
 namespace yuki {
 
-Environment::Environment() : parent(nullptr) {}
-
 Environment::Environment(Environment* parent) : parent(parent) {}
 
 void Environment::define(const std::string& name, const Value& value) {
@@ -21,7 +19,7 @@ bool Environment::assign(const std::string& name, const Value& value) {
     return false;
 }
 
-std::optional<Value> Environment::get(const std::string& name) const {
+std::optional<Value> Environment::get(const std::string& name) {
     if (values.count(name)) {
         return values.at(name);
     }

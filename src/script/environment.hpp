@@ -1,4 +1,5 @@
 #pragma once
+
 #include <string>
 #include <unordered_map>
 #include <optional>
@@ -8,18 +9,14 @@ namespace yuki {
 
 class Environment {
 public:
-    Environment();
+    Environment* parent;
+    std::unordered_map<std::string, Value> values;
+
     Environment(Environment* parent);
     
     void define(const std::string& name, const Value& value);
     bool assign(const std::string& name, const Value& value);
-    std::optional<Value> get(const std::string& name) const;
-    
-    Environment* getParent() const { return parent; }
-
-private:
-    std::unordered_map<std::string, Value> values;
-    Environment* parent;
+    std::optional<Value> get(const std::string& name);
 };
 
 }

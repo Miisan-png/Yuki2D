@@ -1,16 +1,18 @@
 #include "window.hpp"
+#include "log.hpp"
 #include <GLFW/glfw3.h>
-#include <cstdlib>
 namespace yuki {
-Window::Window(int width, int height, const std::string& title)
-    : m_width(width), m_height(height), m_title(title) {
+Window::Window(int width, int height, const std::string& title) 
+    : m_width(width), m_height(height), m_title(title), bgR(0.0f), bgG(0.0f), bgB(0.0f) {
     if (!glfwInit()) {
-        std::exit(EXIT_FAILURE);
+        logError("Failed to initialize GLFW");
+        return;
     }
-    window = glfwCreateWindow(m_width, m_height, m_title.c_str(), nullptr, nullptr);
+    window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
     if (!window) {
+        logError("Failed to create window");
         glfwTerminate();
-        std::exit(EXIT_FAILURE);
+        return;
     }
     glfwMakeContextCurrent(window);
 }
@@ -27,9 +29,14 @@ void Window::pollEvents() {
 void Window::swapBuffers() {
     glfwSwapBuffers(window);
 }
-void Window::clear(float r, float g, float b, float a) {
-    glClearColor(r, g, b, a);
+void Window::clear() {
+    glClearColor(bgR, bgG, bgB, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+}
+void Window::setClearColor(float r, float g, float b) {
+    bgR = r;
+    bgG = g;
+    bgB = b;
 }
 GLFWwindow* Window::getNativeWindow() const {
     return window;

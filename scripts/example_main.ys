@@ -1,7 +1,68 @@
+var time = 0;
+var bg_r = 0;
+var bg_inc = 1;
+
+var rect_x = 50;
+var rect_y = 50;
+
+var rect_speed = 20;
+
+var pulse = 0;
+
+var sprite_ref = nil;
+
 fn init() {
-    engine_log("Yuki2S Initialized!");
+    engine_log("=== Yuki2S Stress Test ===");
+
+    engine_log("Sprite Loaded:");
 }
 
 fn update(dt) {
-    engine_log(dt);
+    time = time + dt;
+
+    bg_r = bg_r + bg_inc * dt * 60;
+
+    if (bg_r > 255) {
+        bg_r = 255;
+        bg_inc = -1;
+    }
+
+    if (bg_r < 0) {
+        bg_r = 0;
+        bg_inc = 1;
+    }
+
+    set_clear_color(bg_r / 255, 40 / 255, 120 / 255);
+
+    rect_x = rect_x + rect_speed * dt;
+    rect_y = rect_y + rect_speed * 0.5 * dt;
+
+    if (rect_x > 600) {
+        rect_x = 600;
+        rect_speed = rect_speed * -1;
+    }
+
+    if (rect_x < 0) {
+        rect_x = 0;
+        rect_speed = rect_speed * -1;
+    }
+
+    pulse = pulse + dt * 6;
+
+    var size = 20 + (sin(pulse) * 10);
+
+    draw_rect(rect_x, rect_y, size, size, 1.0, 0.8, 0.3);
+    draw_rect(320, 180, 50, 50, 0.3, 1.0, 0.3);
+    draw_rect(10, 10, 100, 15, 1.0, 0.3, 0.7);
+
+    var sx = 200 + sin(time * 2) * 80;
+    var sy = 400 + cos(time * 3) * 60;
+
+    draw_sprite(sprite_ref, sx, sy);
+
+    if (time % 1 < 0.016) {
+        engine_log("t=" + time);
+        engine_log("rect=(" + rect_x + "," + rect_y + ")");
+        engine_log("bg_r=" + bg_r);
+    }
 }

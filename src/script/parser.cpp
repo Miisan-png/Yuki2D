@@ -35,11 +35,7 @@ std::unique_ptr<Stmt> Parser::funDecl() {
         } while (match({TokenType::Comma}));
     }
     consume(TokenType::RightParen, "Expect ')' after parameters.");
-    
-    // Parse the body block. Grammar says 'block', which implies { ... }
-    // block() returns a std::unique_ptr<Block>
     std::unique_ptr<Block> body = block();
-    
     return std::make_unique<FunctionDecl>(name.text, std::move(parameters), std::move(body));
 }
 
@@ -57,13 +53,7 @@ std::unique_ptr<Stmt> Parser::statement() {
     if (matchKeyword("if")) return ifStatement();
     if (matchKeyword("while")) return whileStatement();
     if (matchKeyword("return")) return returnStatement();
-    
-    // Check for block start
-    if (check(TokenType::LeftBrace)) {
-        // block() returns a Block node, which inherits from Stmt
-        return block(); 
-    }
-
+    if (check(TokenType::LeftBrace)) return block(); 
     return exprStmt();
 }
 
@@ -71,14 +61,11 @@ std::unique_ptr<Stmt> Parser::ifStatement() {
     consume(TokenType::LeftParen, "Expect '(' after 'if'.");
     std::unique_ptr<Expr> condition = expression();
     consume(TokenType::RightParen, "Expect ')' after if condition.");
-    
     std::unique_ptr<Stmt> thenBranch = statement();
     std::unique_ptr<Stmt> elseBranch = nullptr;
-    
     if (matchKeyword("else")) {
         elseBranch = statement();
     }
-    
     return std::make_unique<IfStmt>(std::move(condition), std::move(thenBranch), std::move(elseBranch));
 }
 
@@ -86,9 +73,7 @@ std::unique_ptr<Stmt> Parser::whileStatement() {
     consume(TokenType::LeftParen, "Expect '(' after 'while'.");
     std::unique_ptr<Expr> condition = expression();
     consume(TokenType::RightParen, "Expect ')' after while condition.");
-    
     std::unique_ptr<Stmt> body = statement();
-    
     return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
 }
 
@@ -122,18 +107,15 @@ std::unique_ptr<Expr> Parser::expression() {
 }
 
 std::unique_ptr<Expr> Parser::assignment() {
-    // To handle assignment (IDENTIFIER = expr), we parse the LHS as logicOr first.
-    // If it turns out to be a Variable, and we see '=', we convert it to assignment.
     std::unique_ptr<Expr> expr = logicOr();
 
     if (match({TokenType::Equal})) {
         Token equals = previous();
-        std::unique_ptr<Expr> value = assignment(); // Recursive for right-associativity
+        std::unique_ptr<Expr> value = assignment();
 
-        if (expr->getKind() == ExprKind::Variable) {
-            // We can cast because we checked getKind()
-            std::string name = static_cast<Variable*>(expr.get())->name;
-            return std::make_unique<Assign>(name, std::move(value));
+        if (expr->getKind() == ExprKind::VarExpr) {
+            std::string name = static_cast<VarExpr*>(expr.get())->name;
+            return std::make_unique<AssignExpr>(name, std::move(value));
         }
 
         error(equals, "Invalid assignment target.");
@@ -144,95 +126,75 @@ std::unique_ptr<Expr> Parser::assignment() {
 
 std::unique_ptr<Expr> Parser::logicOr() {
     std::unique_ptr<Expr> expr = logicAnd();
-
     while (matchKeyword("or")) {
         Token op = previous();
         std::unique_ptr<Expr> right = logicAnd();
-        // Construct Binary node. 'or' is not in TokenType, so we cast Identifier type.
-        // We ensure op.lexeme contains "or".
         expr = std::make_unique<Binary>(std::move(expr), (int)op.type, op.text, std::move(right));
     }
-
     return expr;
 }
 
 std::unique_ptr<Expr> Parser::logicAnd() {
     std::unique_ptr<Expr> expr = equality();
-
     while (matchKeyword("and")) {
         Token op = previous();
         std::unique_ptr<Expr> right = equality();
         expr = std::make_unique<Binary>(std::move(expr), (int)op.type, op.text, std::move(right));
     }
-
     return expr;
 }
 
 std::unique_ptr<Expr> Parser::equality() {
     std::unique_ptr<Expr> expr = comparison();
-
     while (match({TokenType::BangEqual, TokenType::EqualEqual})) {
         Token op = previous();
         std::unique_ptr<Expr> right = comparison();
         expr = std::make_unique<Binary>(std::move(expr), (int)op.type, op.text, std::move(right));
     }
-
     return expr;
 }
 
 std::unique_ptr<Expr> Parser::comparison() {
     std::unique_ptr<Expr> expr = term();
-
     while (match({TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual})) {
         Token op = previous();
         std::unique_ptr<Expr> right = term();
         expr = std::make_unique<Binary>(std::move(expr), (int)op.type, op.text, std::move(right));
     }
-
     return expr;
 }
 
 std::unique_ptr<Expr> Parser::term() {
     std::unique_ptr<Expr> expr = factor();
-
     while (match({TokenType::Minus, TokenType::Plus})) {
         Token op = previous();
         std::unique_ptr<Expr> right = factor();
         expr = std::make_unique<Binary>(std::move(expr), (int)op.type, op.text, std::move(right));
     }
-
     return expr;
 }
 
 std::unique_ptr<Expr> Parser::factor() {
     std::unique_ptr<Expr> expr = unary();
-
-    while (match({TokenType::Slash, TokenType::Star})) {
+    while (match({TokenType::Slash, TokenType::Star, TokenType::Percent})) {
         Token op = previous();
         std::unique_ptr<Expr> right = unary();
         expr = std::make_unique<Binary>(std::move(expr), (int)op.type, op.text, std::move(right));
     }
-
     return expr;
 }
 
 std::unique_ptr<Expr> Parser::unary() {
-    if (match({TokenType::Minus})) { // Simplified: only support minus as typical operator in minimal list
+    if (match({TokenType::Minus})) { 
         Token op = previous();
         std::unique_ptr<Expr> right = unary();
-        // Emulate unary with binary (0 - right) or similar, OR strict AST match implies 
-        // using Binary for now if Unary node doesn't exist.
-        // ast.hpp provided shows NO Unary struct. 
-        // We will represent '-x' as '0 - x'.
         return std::make_unique<Binary>(std::make_unique<Literal>("0"), (int)TokenType::Minus, "-", std::move(right));
     }
-
     return call();
 }
 
 std::unique_ptr<Expr> Parser::call() {
     std::unique_ptr<Expr> expr = primary();
-
     while (true) {
         if (match({TokenType::LeftParen})) {
             expr = finishCall(std::move(expr));
@@ -240,7 +202,6 @@ std::unique_ptr<Expr> Parser::call() {
             break;
         }
     }
-
     return expr;
 }
 
@@ -252,7 +213,6 @@ std::unique_ptr<Expr> Parser::finishCall(std::unique_ptr<Expr> callee) {
         } while (match({TokenType::Comma}));
     }
     consume(TokenType::RightParen, "Expect ')' after arguments.");
-
     return std::make_unique<Call>(std::move(callee), std::move(arguments));
 }
 
@@ -265,7 +225,7 @@ std::unique_ptr<Expr> Parser::primary() {
     }
 
     if (match({TokenType::Identifier})) {
-        return std::make_unique<Variable>(previous().text);
+        return std::make_unique<VarExpr>(previous().text);
     }
 
     if (match({TokenType::LeftParen})) {
@@ -275,10 +235,8 @@ std::unique_ptr<Expr> Parser::primary() {
     }
 
     error(peek(), "Expect expression.");
-    return nullptr;
+    throw std::runtime_error("Expect expression.");
 }
-
-// Helpers
 
 bool Parser::match(const std::vector<TokenType>& types) {
     for (TokenType type : types) {
@@ -333,20 +291,16 @@ Token Parser::consume(TokenType type, const std::string& message) {
 
 void Parser::error(Token token, const std::string& message) {
     std::cerr << "[Error] at '" << token.text << "': " << message << std::endl;
-    throw std::runtime_error(message);
 }
 
 void Parser::synchronize() {
     advance();
     while (!isAtEnd()) {
         if (previous().type == TokenType::Semicolon) return;
-        
-        // Check keywords
         if (peek().type == TokenType::Identifier) {
             const std::string& t = peek().text;
             if (t == "fn" || t == "var" || t == "if" || t == "while" || t == "return") return;
         }
-        
         advance();
     }
 }

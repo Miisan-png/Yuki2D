@@ -6,31 +6,30 @@
 
 namespace yuki {
 
-Interpreter::Interpreter() : globals(new Environment()), env(globals) {
-    // Register script builtins
+Interpreter::Interpreter() : globals(new Environment(nullptr)), env(globals) {
     registerScriptBuiltins(builtins);
-    // Register engine builtins
     EngineBindings::registerBuiltins(builtins);
 }
 
 Interpreter::~Interpreter() {
-    // Clean up environments
     Environment* currentEnv = env;
     while (currentEnv != globals && currentEnv != nullptr) {
         Environment* temp = currentEnv;
-        currentEnv = currentEnv->getParent();
+        currentEnv = currentEnv->parent;
         delete temp;
     }
-    if (env != globals) { 
-        // If we are deep in stack, we might have skipped cleaning globals if we went up.
-        // But simplified: just ensure globals is deleted.
-        // Actually, the loop above cleans up strictly upwards from 'env'.
-        // If 'env' is globals, loop doesn't run.
-    }
-    delete globals;
+    if (globals) delete globals;
     
-    for (auto fn : allocatedFunctions) {
-        delete fn;
+    for (auto fn : allocatedFunctions) delete fn;
+}
+
+void Interpreter::pushEnv(Environment* newEnv) {
+    env = newEnv;
+}
+
+void Interpreter::popEnv() {
+    if (env->parent) {
+        env = env->parent;
     }
 }
 
@@ -38,7 +37,7 @@ bool isTruthy(const Value& v) {
     if (v.isNil()) return false;
     if (v.isBool()) return v.boolVal;
     if (v.isNumber()) return v.numberVal != 0;
-    return true; // Strings, Functions are true
+    return true;
 }
 
 bool isEqual(const Value& a, const Value& b) {
@@ -47,22 +46,15 @@ bool isEqual(const Value& a, const Value& b) {
     if (a.isNumber()) return std::abs(a.numberVal - b.numberVal) < 1e-9;
     if (a.isBool()) return a.boolVal == b.boolVal;
     if (a.isString()) return a.stringVal == b.stringVal;
-    return false; // Functions not comparable for equality in this simple version
+    return false;
 }
 
 Value Interpreter::callFunction(FunctionValue* fn, const std::vector<Value>& args) {
     if (!fn) return Value::nilVal();
 
     if (fn->isNative) {
-        if (fn->nativeFn) {
-            return fn->nativeFn(args);
-        }
+        if (fn->nativeFn) return fn->nativeFn(args);
         return Value::nilVal();
-    }
-
-    // Script Function
-    if (args.size() != fn->parameters.size()) {
-        // We could error or warn here. For now, nil for missing, ignore extra.
     }
 
     Environment* closure = new Environment(fn->closure);
@@ -75,42 +67,8 @@ Value Interpreter::callFunction(FunctionValue* fn, const std::vector<Value>& arg
     }
 
     Value ret = Value::nilVal();
-    try {
-        // We need to switch 'env' to closure during execution
-        Environment* previous = env;
-        env = closure;
-        // Body execution
-        if (fn->body) {
-            // We reuse execBlock logic but without creating NEW env, using closure
-            for (const auto& stmt : fn->body->statements) {
-                evalStmt(stmt.get());
-            }
-        }
-        env = previous;
-    } catch (const ReturnSignal& sig) {
-        ret = sig.value;
-        // Ensure we restore environment if exception thrown (though we caught it)
-        // If we didn't restore in try block (e.g. exception thrown in evalStmt), we need to handle that.
-        // But ReturnSignal is our control flow.
-        // If we are here, 'env' is still 'closure' unless we restored it.
-        // Actually, we need to restore env in catch block too if we didn't reach end of try.
-        // But wait, if exception is thrown, we jump out. 'env' was set to 'closure'.
-        // We must restore it.
-        // Proper way involves RAII for environment switching, but let's just fix it manually here.
-        // Since we are IN the catch, 'env' IS 'closure'.
-        // We need to restore it to 'fn->closure' parent? No, to 'previous'.
-        // But we lost 'previous' scope? No, 'previous' is local var.
-        // Wait, local vars are accessible in catch block.
-        // But we need to make sure 'previous' is visible.
-    }
-    
-    // Correction: We need to ensure 'env' is restored.
-    // Let's refactor execution to be safe.
-    // The issue: 'previous' is declared inside 'try' block? No.
-    // Let's rewrite safely.
-    
     Environment* previous = env;
-    env = closure;
+    pushEnv(closure);
     
     try {
         if (fn->body) {
@@ -138,29 +96,19 @@ Value Interpreter::evalExpr(const Expr* expr) {
     switch (expr->getKind()) {
         case ExprKind::Literal: {
             const auto* l = static_cast<const Literal*>(expr);
-            // Try parse number
             char* end;
             double d = std::strtod(l->value.c_str(), &end);
-            if (end != l->value.c_str() && *end == '\0') {
-                return Value::number(d);
-            }
+            if (end != l->value.c_str() && *end == '\0') return Value::number(d);
             if (l->value == "true") return Value::boolean(true);
             if (l->value == "false") return Value::boolean(false);
             if (l->value == "nil") return Value::nilVal();
-            // String literal (assumed already stripped of quotes by parser or is raw)
-            // If parser keeps quotes, we should strip them. Assuming parser provides raw string content.
             return Value::string(l->value);
         }
-        case ExprKind::Variable: {
-            const auto* v = static_cast<const Variable*>(expr);
+        case ExprKind::VarExpr: {
+            const auto* v = static_cast<const VarExpr*>(expr);
             auto val = env->get(v->name);
             if (val.has_value()) return val.value();
-            // Check builtins if not found in env
             if (builtins.count(v->name)) {
-                // Create a native function value wrapper on the fly? 
-                // Or builtins should be in globals?
-                // Better: put builtins in globals during init.
-                // But if we want to fallback:
                 FunctionValue* fn = new FunctionValue();
                 fn->isNative = true;
                 fn->name = v->name;
@@ -170,38 +118,34 @@ Value Interpreter::evalExpr(const Expr* expr) {
             }
             return Value::nilVal();
         }
-        case ExprKind::Assign: {
-            const auto* a = static_cast<const Assign*>(expr);
+        case ExprKind::AssignExpr: {
+            const auto* a = static_cast<const AssignExpr*>(expr);
             Value val = evalExpr(a->value.get());
-            env->assign(a->name, val);
+            if (!env->assign(a->name, val)) {
+                env->define(a->name, val);
+            }
             return val;
         }
         case ExprKind::Binary: {
             const auto* b = static_cast<const Binary*>(expr);
             Value left = evalExpr(b->left.get());
             Value right = evalExpr(b->right.get());
-            
-            // Assuming we have token types available or checking Op
-            // For now, let's map lexeme. 
-            // In a real engine, use integer types.
             std::string op = b->op.lexeme;
             
             if (op == "+") {
-                if (left.isNumber() && right.isNumber()) {
-                    return Value::number(left.numberVal + right.numberVal);
-                }
+                if (left.isNumber() && right.isNumber()) return Value::number(left.numberVal + right.numberVal);
                 return Value::string(left.toString() + right.toString());
             }
             if (op == "-") return Value::number(left.numberVal - right.numberVal);
             if (op == "*") return Value::number(left.numberVal * right.numberVal);
-            if (op == "/") return Value::number(left.numberVal / right.numberVal); // TODO: Div by zero check
+            if (op == "/") return Value::number(left.numberVal / right.numberVal);
+            if (op == "%") return Value::number(std::fmod(left.numberVal, right.numberVal));
             if (op == ">") return Value::boolean(left.numberVal > right.numberVal);
             if (op == ">=") return Value::boolean(left.numberVal >= right.numberVal);
             if (op == "<") return Value::boolean(left.numberVal < right.numberVal);
             if (op == "<=") return Value::boolean(left.numberVal <= right.numberVal);
             if (op == "==") return Value::boolean(isEqual(left, right));
             if (op == "!=") return Value::boolean(!isEqual(left, right));
-            
             return Value::nilVal();
         }
         case ExprKind::Call: {
@@ -247,10 +191,9 @@ Value Interpreter::evalStmt(const Stmt* stmt) {
             fn->isNative = false;
             fn->name = fs->name;
             fn->parameters = fs->parameters;
-            fn->body = fs->body.get(); // Raw pointer, owned by AST
-            fn->closure = env; // Capture current env
+            fn->body = fs->body.get();
+            fn->closure = env;
             allocatedFunctions.push_back(fn);
-            
             env->define(fs->name, Value::function(fn));
             return Value::nilVal();
         }
@@ -284,7 +227,7 @@ Value Interpreter::evalStmt(const Stmt* stmt) {
 
 Value Interpreter::execBlock(const Block* block, Environment* newEnv) {
     Environment* previous = env;
-    env = newEnv;
+    pushEnv(newEnv);
     try {
         for (const auto& stmt : block->statements) {
             evalStmt(stmt.get());
