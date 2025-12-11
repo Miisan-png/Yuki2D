@@ -39,6 +39,12 @@ Value Value::function(FunctionValue* val) {
     v.functionVal = val;
     return v;
 }
+Value Value::map(const std::unordered_map<std::string, Value>& val) {
+    Value v;
+    v.type = ValueType::Map;
+    v.mapVal = val;
+    return v;
+}
 
 bool Value::isNil() const {
     return type == ValueType::Nil;
@@ -59,6 +65,9 @@ bool Value::isString() const {
 bool Value::isFunction() const {
     return type == ValueType::Function;
 }
+bool Value::isMap() const {
+    return type == ValueType::Map;
+}
 
 std::string Value::toString() const {
     switch (type) {
@@ -66,6 +75,7 @@ std::string Value::toString() const {
         case ValueType::Bool:     return boolVal ? "true" : "false";
         case ValueType::String:   return stringVal;
         case ValueType::Function: return "<function " + (functionVal ? functionVal->name : "") + ">";
+        case ValueType::Map:      return "<map>";
         default:                  return "nil";
     }
 }

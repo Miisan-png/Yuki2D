@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <filesystem>
+#include <utility>
 namespace yuki {
 static Window* g_Window = nullptr;
 static Renderer2D* g_Renderer = nullptr;
@@ -116,6 +117,19 @@ static std::unordered_map<std::string, int> buildKeyMap() {
 }
 
 static const std::unordered_map<std::string, int> kKeyMap = buildKeyMap();
+static std::unordered_map<std::string, int> buildMouseMap() {
+    std::unordered_map<std::string, int> m;
+    m["mouse_left"] = GLFW_MOUSE_BUTTON_LEFT;
+    m["mouse_right"] = GLFW_MOUSE_BUTTON_RIGHT;
+    m["mouse_middle"] = GLFW_MOUSE_BUTTON_MIDDLE;
+    m["mouse_4"] = GLFW_MOUSE_BUTTON_4;
+    m["mouse_5"] = GLFW_MOUSE_BUTTON_5;
+    m["mouse_6"] = GLFW_MOUSE_BUTTON_6;
+    m["mouse_7"] = GLFW_MOUSE_BUTTON_7;
+    m["mouse_8"] = GLFW_MOUSE_BUTTON_8;
+    return m;
+}
+static const std::unordered_map<std::string, int> kMouseMap = buildMouseMap();
 
 static int resolveKey(const Value& keyVal) {
     if (keyVal.isString()) {
@@ -130,6 +144,38 @@ static int resolveKey(const Value& keyVal) {
         return (int)keyVal.numberVal;
     }
     logError("Unknown key type for input query");
+    return -1;
+}
+static std::pair<bool, int> resolveActionBinding(const Value& v) {
+    if (v.isString()) {
+        std::string name = v.stringVal;
+        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+        auto keyIt = kKeyMap.find(name);
+        if (keyIt != kKeyMap.end()) return {false, keyIt->second};
+        auto mouseIt = kMouseMap.find(name);
+        if (mouseIt != kMouseMap.end()) return {true, mouseIt->second};
+        logError("Unknown input '" + name + "'");
+        return {false, -1};
+    }
+    if (v.isNumber()) {
+        return {false, (int)v.numberVal};
+    }
+    logError("Unknown input type for action binding");
+    return {false, -1};
+}
+static int resolveMouseButton(const Value& val) {
+    if (val.isString()) {
+        std::string name = val.stringVal;
+        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+        auto it = kMouseMap.find(name);
+        if (it != kMouseMap.end()) return it->second;
+        logError("Unknown mouse button '" + name + "'");
+        return -1;
+    }
+    if (val.isNumber()) {
+        return (int)val.numberVal;
+    }
+    logError("Unknown mouse button type");
     return -1;
 }
 static void applySpriteOverrides(int id, float& x, float& y, float& rot, float& sx, float& sy, float& alpha) {
@@ -438,6 +484,14 @@ Value engineLoadSprite(const std::vector<Value>& args) {
     }
     return Value::number(-1);
 }
+Value engineLoadFont(const std::vector<Value>& args) {
+    if (args.size() < 2 || !g_Renderer) return Value::number(-1);
+    std::filesystem::path img(args[0].toString());
+    std::filesystem::path metrics(args[1].toString());
+    if (!img.is_absolute() && !g_AssetBase.empty()) img = std::filesystem::path(g_AssetBase) / img;
+    if (!metrics.is_absolute() && !g_AssetBase.empty()) metrics = std::filesystem::path(g_AssetBase) / metrics;
+    return Value::number(g_Renderer->loadFont(img.string(), metrics.string()));
+}
 Value engineDrawSprite(const std::vector<Value>& args) {
     if (args.size() >= 3 && g_Renderer) {
         int id = (int)args[0].numberVal;
@@ -476,6 +530,46 @@ Value engineDrawSpriteEx(const std::vector<Value>& args) {
         g_Renderer->drawSpriteEx(id, x, y, rot, sx, sy, fx, fy, ox, oy, alpha);
     }
     return Value::nilVal();
+}
+Value engineDrawText(const std::vector<Value>& args) {
+    if (args.size() < 4 || !g_Renderer) return Value::nilVal();
+    int fontId = (int)args[0].numberVal;
+    std::string text = args[1].toString();
+    float x = args[2].numberVal;
+    float y = args[3].numberVal;
+    float scale = 1.0f;
+    float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
+    std::string align = "left";
+    float maxWidth = 0.0f;
+    float lineHeight = 0.0f;
+    if (args.size() >= 5 && args[4].isNumber()) scale = args[4].numberVal;
+    if (args.size() >= 6 && args[5].isNumber()) r = args[5].numberVal;
+    if (args.size() >= 7 && args[6].isNumber()) g = args[6].numberVal;
+    if (args.size() >= 8 && args[7].isNumber()) b = args[7].numberVal;
+    if (args.size() >= 9 && args[8].isNumber()) a = args[8].numberVal;
+    if (args.size() >= 10 && args[9].isString()) align = args[9].toString();
+    if (args.size() >= 11 && args[10].isNumber()) maxWidth = args[10].numberVal;
+    if (args.size() >= 12 && args[11].isNumber()) lineHeight = args[11].numberVal;
+    g_Renderer->drawTextEx(fontId, text, x, y, scale, r, g, b, a, align, maxWidth, lineHeight);
+    return Value::nilVal();
+}
+Value engineMeasureTextWidth(const std::vector<Value>& args) {
+    if (args.size() < 2 || !g_Renderer) return Value::number(0);
+    int fontId = (int)args[0].numberVal;
+    std::string text = args[1].toString();
+    float scale = args.size() > 2 && args[2].isNumber() ? args[2].numberVal : 1.0f;
+    float maxWidth = args.size() > 3 && args[3].isNumber() ? args[3].numberVal : 0.0f;
+    float lineHeight = args.size() > 4 && args[4].isNumber() ? args[4].numberVal : 0.0f;
+    return Value::number(g_Renderer->measureTextWidth(fontId, text, scale, maxWidth, lineHeight));
+}
+Value engineMeasureTextHeight(const std::vector<Value>& args) {
+    if (args.size() < 2 || !g_Renderer) return Value::number(0);
+    int fontId = (int)args[0].numberVal;
+    std::string text = args[1].toString();
+    float scale = args.size() > 2 && args[2].isNumber() ? args[2].numberVal : 1.0f;
+    float maxWidth = args.size() > 3 && args[3].isNumber() ? args[3].numberVal : 0.0f;
+    float lineHeight = args.size() > 4 && args[4].isNumber() ? args[4].numberVal : 0.0f;
+    return Value::number(g_Renderer->measureTextHeight(fontId, text, scale, maxWidth, lineHeight));
 }
 Value engineSetCameraPos(const std::vector<Value>& args) {
     if (args.size() >= 2 && g_Renderer) {
@@ -555,6 +649,62 @@ Value engineIsKeyReleased(const std::vector<Value>& args) {
         return Value::boolean(isKeyReleased(key));
     }
     return Value::boolean(false);
+}
+Value engineIsMouseDown(const std::vector<Value>& args) {
+    if (args.empty()) return Value::boolean(false);
+    int btn = resolveMouseButton(args[0]);
+    if (btn >= 0) {
+        return Value::boolean(isMouseDown(btn));
+    }
+    return Value::boolean(false);
+}
+Value engineIsMousePressed(const std::vector<Value>& args) {
+    if (args.empty()) return Value::boolean(false);
+    int btn = resolveMouseButton(args[0]);
+    if (btn >= 0) {
+        return Value::boolean(isMousePressed(btn));
+    }
+    return Value::boolean(false);
+}
+Value engineIsMouseReleased(const std::vector<Value>& args) {
+    if (args.empty()) return Value::boolean(false);
+    int btn = resolveMouseButton(args[0]);
+    if (btn >= 0) {
+        return Value::boolean(isMouseReleased(btn));
+    }
+    return Value::boolean(false);
+}
+Value engineGetMouseX(const std::vector<Value>&) {
+    return Value::number(getMouseX());
+}
+Value engineGetMouseY(const std::vector<Value>&) {
+    return Value::number(getMouseY());
+}
+Value engineBindAction(const std::vector<Value>& args) {
+    if (args.size() < 2) return Value::nilVal();
+    std::string name = args[0].toString();
+    auto binding = resolveActionBinding(args[1]);
+    if (binding.second < 0) return Value::nilVal();
+    bindAction(name, binding.first, binding.second);
+    return Value::nilVal();
+}
+Value engineUnbindAction(const std::vector<Value>& args) {
+    if (args.empty()) return Value::nilVal();
+    std::string name = args[0].toString();
+    unbindAction(name);
+    return Value::nilVal();
+}
+Value engineActionDown(const std::vector<Value>& args) {
+    if (args.empty()) return Value::boolean(false);
+    return Value::boolean(isActionDown(args[0].toString()));
+}
+Value engineActionPressed(const std::vector<Value>& args) {
+    if (args.empty()) return Value::boolean(false);
+    return Value::boolean(isActionPressed(args[0].toString()));
+}
+Value engineActionReleased(const std::vector<Value>& args) {
+    if (args.empty()) return Value::boolean(false);
+    return Value::boolean(isActionReleased(args[0].toString()));
 }
 Value engineTweenValue(const std::vector<Value>& args) {
     if (args.size() < 3) return Value::number(-1);
@@ -899,6 +1049,11 @@ void EngineBindings::registerBuiltins(std::unordered_map<std::string, NativeFn>&
     builtins["load_sprite"] = engineLoadSprite;
     builtins["draw_sprite"] = engineDrawSprite;
     builtins["draw_sprite_ex"] = engineDrawSpriteEx;
+    builtins["load_font"] = engineLoadFont;
+    builtins["draw_text"] = engineDrawText;
+    builtins["draw_text_ex"] = engineDrawText;
+    builtins["measure_text_width"] = engineMeasureTextWidth;
+    builtins["measure_text_height"] = engineMeasureTextHeight;
     builtins["set_camera_position"] = engineSetCameraPos;
     builtins["set_camera_zoom"] = engineSetCameraZoom;
     builtins["get_camera_x"] = engineGetCameraPosX;
@@ -912,6 +1067,16 @@ void EngineBindings::registerBuiltins(std::unordered_map<std::string, NativeFn>&
     builtins["is_key_down"] = engineIsKeyDown;
     builtins["is_key_pressed"] = engineIsKeyPressed;
     builtins["is_key_released"] = engineIsKeyReleased;
+    builtins["is_mouse_down"] = engineIsMouseDown;
+    builtins["is_mouse_pressed"] = engineIsMousePressed;
+    builtins["is_mouse_released"] = engineIsMouseReleased;
+    builtins["get_mouse_x"] = engineGetMouseX;
+    builtins["get_mouse_y"] = engineGetMouseY;
+    builtins["bind_action"] = engineBindAction;
+    builtins["unbind_action"] = engineUnbindAction;
+    builtins["action_down"] = engineActionDown;
+    builtins["action_pressed"] = engineActionPressed;
+    builtins["action_released"] = engineActionReleased;
     builtins["tween_value"] = engineTweenValue;
     builtins["tween_value_get"] = engineTweenValueGet;
     builtins["tween_property"] = engineTweenProperty;

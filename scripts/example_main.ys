@@ -1,6 +1,12 @@
+var font;
+
 fn init() {
-    print("Hello azar");
+    print("Loading font");
+    font = load_font("../assets/fonts/monogram_bitmap.png", "../assets/fonts/monogram_bitmap.json");
+    set_clear_color(0.08, 0.09, 0.12);
 }
 
 fn update(dt) {
+    draw_text(font, "Yuki text demo", 16, 20, 2, 1, 1, 0.85, 1, "left", 0, 0);
+    draw_text(font, "Wrapped and centered text that shows the new font pipeline in action.", 200, 90, 1, 0.8, 1, 1, 1, "center", 220, 14);
 }
