@@ -47,6 +47,20 @@ struct SpriteState {
     bool overrideAlpha = false;
 };
 static std::unordered_map<int, SpriteState> g_SpriteStates;
+struct Animation {
+    int id = -1;
+    int sheetId = -1;
+    std::vector<int> frames;
+    double fps = 0.0;
+    bool loop = false;
+    double accumulator = 0.0;
+    int currentIndex = 0;
+    bool playing = false;
+    SpriteTransform transform;
+    float alpha = 1.0f;
+};
+static std::unordered_map<int, Animation> g_Animations;
+static int g_AnimationCounter = 1;
 enum class TweenTargetType { None, Sprite, Camera };
 enum class TweenType { Value, Property };
 struct TweenTarget {
@@ -198,6 +212,19 @@ static void applySpriteOverrides(int id, float& x, float& y, float& rot, float& 
     if (s.overrideScaleX) sx = s.scaleX; else s.scaleX = sx;
     if (s.overrideScaleY) sy = s.scaleY; else s.scaleY = sy;
     if (s.overrideAlpha) alpha = s.alpha; else s.alpha = alpha;
+}
+static std::vector<int> toFrameList(const Value& v) {
+    std::vector<int> out;
+    if (!v.isArray() || !v.arrayPtr) return out;
+    for (const auto& item : *v.arrayPtr) {
+        if (item.isNumber()) out.push_back((int)item.numberVal);
+    }
+    return out;
+}
+static Animation* getAnimation(int id) {
+    auto it = g_Animations.find(id);
+    if (it == g_Animations.end()) return nullptr;
+    return &it->second;
 }
 static double clamp01(double v) {
     if (v < 0.0) return 0.0;
@@ -450,12 +477,37 @@ static void cleanupFinishedGroups() {
         g_Parallels.erase(id);
     }
 }
+static void updateAnimations(double dt) {
+    if (g_Animations.empty()) return;
+    for (auto& kv : g_Animations) {
+        Animation& a = kv.second;
+        if (!a.playing) continue;
+        if (a.frames.empty()) continue;
+        if (a.fps <= 0.0) continue;
+        double step = 1.0 / a.fps;
+        a.accumulator += dt;
+        while (a.accumulator >= step) {
+            a.accumulator -= step;
+            a.currentIndex++;
+            if (a.currentIndex >= (int)a.frames.size()) {
+                if (a.loop) {
+                    a.currentIndex = 0;
+                } else {
+                    a.currentIndex = (int)a.frames.size() - 1;
+                    a.playing = false;
+                    break;
+                }
+            }
+        }
+    }
+}
 void EngineBindings::update(double dt) {
     updateSequences(dt);
     updateParallels(dt);
     updateStandaloneTweens(dt);
     cleanupFinishedTweens();
     cleanupFinishedGroups();
+    updateAnimations(dt);
 }
 Value engineLog(const std::vector<Value>& args) {
     std::string msg;
@@ -562,6 +614,14 @@ Value engineLoadSprite(const std::vector<Value>& args) {
     }
     return Value::number(-1);
 }
+Value engineLoadSpriteSheet(const std::vector<Value>& args) {
+    if (args.size() < 3 || !g_Renderer) return Value::number(-1);
+    std::filesystem::path p(args[0].toString());
+    if (!p.is_absolute() && !g_AssetBase.empty()) p = std::filesystem::path(g_AssetBase) / p;
+    int fw = (int)args[1].numberVal;
+    int fh = (int)args[2].numberVal;
+    return Value::number(g_Renderer->loadSpriteSheet(p.string(), fw, fh));
+}
 Value engineLoadFont(const std::vector<Value>& args) {
     if (args.size() < 2 || !g_Renderer) return Value::number(-1);
     std::filesystem::path img(args[0].toString());
@@ -607,6 +667,133 @@ Value engineDrawSpriteEx(const std::vector<Value>& args) {
         applySpriteOverrides(id, x, y, rot, sx, sy, alpha);
         g_Renderer->drawSpriteEx(id, x, y, rot, sx, sy, fx, fy, ox, oy, alpha);
     }
+    return Value::nilVal();
+}
+Value engineDrawSpriteFrame(const std::vector<Value>& args) {
+    if (args.size() < 9 || !g_Renderer) return Value::nilVal();
+    int sheetId = (int)args[0].numberVal;
+    int frame = (int)args[1].numberVal;
+    float x = args[2].numberVal;
+    float y = args[3].numberVal;
+    float rot = args[4].numberVal;
+    float sx = args[5].numberVal;
+    float sy = args[6].numberVal;
+    bool fx = args[7].isBool() ? args[7].boolVal : (args[7].numberVal != 0);
+    bool fy = args[8].isBool() ? args[8].boolVal : (args[8].numberVal != 0);
+    float ox = -1.0f;
+    float oy = -1.0f;
+    float alpha = 1.0f;
+    if (args.size() >= 11) {
+        ox = args[9].numberVal;
+        oy = args[10].numberVal;
+    } else if (args.size() == 10) {
+        ox = args[9].numberVal;
+    }
+    if (args.size() >= 12) {
+        alpha = args[11].numberVal;
+    }
+    g_Renderer->drawSpriteFrame(sheetId, frame, x, y, rot, sx, sy, fx, fy, ox, oy, alpha);
+    return Value::nilVal();
+}
+Value engineAnimCreate(const std::vector<Value>& args) {
+    if (args.size() < 3) return Value::number(-1);
+    int sheetId = (int)args[0].numberVal;
+    std::vector<int> frames = toFrameList(args[1]);
+    if (frames.empty()) return Value::number(-1);
+    double fps = args[2].numberVal;
+    bool loop = true;
+    if (args.size() >= 4) {
+        loop = args[3].isBool() ? args[3].boolVal : (args[3].numberVal != 0);
+    }
+    Animation anim;
+    anim.id = g_AnimationCounter++;
+    anim.sheetId = sheetId;
+    anim.frames = frames;
+    anim.fps = fps;
+    anim.loop = loop;
+    anim.playing = true;
+    g_Animations[anim.id] = anim;
+    return Value::number(anim.id);
+}
+Value engineAnimPlay(const std::vector<Value>& args) {
+    if (args.empty()) return Value::nilVal();
+    int id = (int)args[0].numberVal;
+    auto* anim = getAnimation(id);
+    if (!anim) return Value::nilVal();
+    bool restart = args.size() >= 2 ? (args[1].isBool() ? args[1].boolVal : (args[1].numberVal != 0)) : false;
+    if (restart) {
+        anim->currentIndex = 0;
+        anim->accumulator = 0.0;
+    }
+    anim->playing = true;
+    return Value::nilVal();
+}
+Value engineAnimStop(const std::vector<Value>& args) {
+    if (args.empty()) return Value::nilVal();
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (anim) anim->playing = false;
+    return Value::nilVal();
+}
+Value engineAnimReset(const std::vector<Value>& args) {
+    if (args.empty()) return Value::nilVal();
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (!anim) return Value::nilVal();
+    anim->currentIndex = 0;
+    anim->accumulator = 0.0;
+    return Value::nilVal();
+}
+Value engineAnimSetPosition(const std::vector<Value>& args) {
+    if (args.size() < 3) return Value::nilVal();
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (!anim) return Value::nilVal();
+    anim->transform.x = args[1].numberVal;
+    anim->transform.y = args[2].numberVal;
+    return Value::nilVal();
+}
+Value engineAnimSetOrigin(const std::vector<Value>& args) {
+    if (args.size() < 3) return Value::nilVal();
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (!anim) return Value::nilVal();
+    anim->transform.originX = args[1].numberVal;
+    anim->transform.originY = args[2].numberVal;
+    return Value::nilVal();
+}
+Value engineAnimSetScale(const std::vector<Value>& args) {
+    if (args.size() < 3) return Value::nilVal();
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (!anim) return Value::nilVal();
+    anim->transform.scaleX = args[1].numberVal;
+    anim->transform.scaleY = args[2].numberVal;
+    return Value::nilVal();
+}
+Value engineAnimSetRotation(const std::vector<Value>& args) {
+    if (args.size() < 2) return Value::nilVal();
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (!anim) return Value::nilVal();
+    anim->transform.rotationDeg = args[1].numberVal;
+    return Value::nilVal();
+}
+Value engineAnimSetFlip(const std::vector<Value>& args) {
+    if (args.size() < 3) return Value::nilVal();
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (!anim) return Value::nilVal();
+    anim->transform.flipX = args[1].isBool() ? args[1].boolVal : (args[1].numberVal != 0);
+    anim->transform.flipY = args[2].isBool() ? args[2].boolVal : (args[2].numberVal != 0);
+    return Value::nilVal();
+}
+Value engineAnimSetAlpha(const std::vector<Value>& args) {
+    if (args.size() < 2) return Value::nilVal();
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (!anim) return Value::nilVal();
+    anim->alpha = args[1].numberVal;
+    return Value::nilVal();
+}
+Value engineAnimDraw(const std::vector<Value>& args) {
+    if (args.empty() || !g_Renderer) return Value::nilVal();
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (!anim || anim->frames.empty()) return Value::nilVal();
+    int frame = anim->frames[anim->currentIndex % (int)anim->frames.size()];
+    g_Renderer->drawSpriteFrame(anim->sheetId, frame, anim->transform.x, anim->transform.y, anim->transform.rotationDeg, anim->transform.scaleX, anim->transform.scaleY, anim->transform.flipX, anim->transform.flipY, anim->transform.originX, anim->transform.originY, anim->alpha);
     return Value::nilVal();
 }
 Value engineDrawText(const std::vector<Value>& args) {
@@ -1234,13 +1421,26 @@ void EngineBindings::registerBuiltins(std::unordered_map<std::string, NativeFn>&
     builtins["set_clear_color"] = engineSetClearColor;
     builtins["draw_rect"] = engineDrawRect;
     builtins["load_sprite"] = engineLoadSprite;
+    builtins["load_sprite_sheet"] = engineLoadSpriteSheet;
     builtins["draw_sprite"] = engineDrawSprite;
     builtins["draw_sprite_ex"] = engineDrawSpriteEx;
+    builtins["draw_sprite_frame"] = engineDrawSpriteFrame;
     builtins["load_font"] = engineLoadFont;
     builtins["draw_text"] = engineDrawText;
     builtins["draw_text_ex"] = engineDrawText;
     builtins["measure_text_width"] = engineMeasureTextWidth;
     builtins["measure_text_height"] = engineMeasureTextHeight;
+    builtins["anim_create"] = engineAnimCreate;
+    builtins["anim_play"] = engineAnimPlay;
+    builtins["anim_stop"] = engineAnimStop;
+    builtins["anim_reset"] = engineAnimReset;
+    builtins["anim_set_position"] = engineAnimSetPosition;
+    builtins["anim_set_origin"] = engineAnimSetOrigin;
+    builtins["anim_set_scale"] = engineAnimSetScale;
+    builtins["anim_set_rotation"] = engineAnimSetRotation;
+    builtins["anim_set_flip"] = engineAnimSetFlip;
+    builtins["anim_set_alpha"] = engineAnimSetAlpha;
+    builtins["anim_draw"] = engineAnimDraw;
     builtins["set_camera_position"] = engineSetCameraPos;
     builtins["set_camera_zoom"] = engineSetCameraZoom;
     builtins["get_camera_x"] = engineGetCameraPosX;

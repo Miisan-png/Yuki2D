@@ -130,8 +130,8 @@ namespace {
         float effectiveScaleY = t.scaleY * (t.flipY ? -1.0f : 1.0f);
         float pivotX = t.originX >= 0.0f ? t.originX : baseW * 0.5f;
         float pivotY = t.originY >= 0.0f ? t.originY : baseH * 0.5f;
-        float pivotWorldX = t.x + pivotX * effectiveScaleX;
-        float pivotWorldY = t.y + pivotY * effectiveScaleY;
+        float pivotWorldX = t.x + pivotX * t.scaleX;
+        float pivotWorldY = t.y + pivotY * t.scaleY;
         float rad = t.rotationDeg * kDegToRad;
         float cosr = std::cos(rad);
         float sinr = std::sin(rad);
@@ -150,10 +150,10 @@ namespace {
             out.pos[i][1] = pivotWorldY + rx * sinr + ry * cosr;
         }
 
-        float u0 = t.flipX ? 1.0f : 0.0f;
-        float u1 = t.flipX ? 0.0f : 1.0f;
-        float v0 = t.flipY ? 1.0f : 0.0f;
-        float v1 = t.flipY ? 0.0f : 1.0f;
+        float u0 = 0.0f;
+        float u1 = 1.0f;
+        float v0 = 0.0f;
+        float v1 = 1.0f;
 
         out.uv[0][0] = u0; out.uv[0][1] = v0;
         out.uv[1][0] = u1; out.uv[1][1] = v0;
@@ -350,6 +350,11 @@ Renderer2D::~Renderer2D() {
             glDeleteTextures(1, &tex.handle);
         }
     }
+    for (const auto& sheet : spriteSheets) {
+        if (sheet.texture != 0) {
+            glDeleteTextures(1, &sheet.texture);
+        }
+    }
     for (const auto& f : fonts) {
         if (f.texture != 0) {
             glDeleteTextures(1, &f.texture);
@@ -397,6 +402,58 @@ void Renderer2D::drawSpriteEx(int id, float x, float y, float rotationDeg, float
     cmd.sprite.id = id;
     cmd.sprite.transform = SpriteTransform{x, y, rotationDeg, scaleX, scaleY, flipX, flipY, originX, originY};
     cmd.sprite.alpha = alpha;
+    buffer.push_back(cmd);
+}
+
+int Renderer2D::loadSpriteSheet(const std::string& path, int frameW, int frameH) {
+    if (frameW <= 0 || frameH <= 0) return -1;
+    int w, h, channels;
+    unsigned char* data = stbi_load(path.c_str(), &w, &h, &channels, 4);
+    if (!data) {
+        logError("Failed to load sprite sheet: " + path);
+        return -1;
+    }
+    if (w < frameW || h < frameH) {
+        stbi_image_free(data);
+        logError("Sprite sheet too small for frame size: " + path);
+        return -1;
+    }
+
+    unsigned int texId = 0;
+    glGenTextures(1, &texId);
+    glBindTexture(GL_TEXTURE_2D, texId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    stbi_image_free(data);
+
+    int cols = frameW > 0 ? w / frameW : 0;
+    int rows = frameH > 0 ? h / frameH : 0;
+    if (cols <= 0 || rows <= 0) {
+        glDeleteTextures(1, &texId);
+        logError("Invalid frame layout for sheet: " + path);
+        return -1;
+    }
+    SpriteSheet sheet;
+    sheet.texture = texId;
+    sheet.texW = w;
+    sheet.texH = h;
+    sheet.frameW = frameW;
+    sheet.frameH = frameH;
+    sheet.cols = cols;
+    sheet.rows = rows;
+    spriteSheets.push_back(sheet);
+    return (int)spriteSheets.size() - 1;
+}
+
+void Renderer2D::drawSpriteFrame(int sheetId, int frame, float x, float y, float rotationDeg, float scaleX, float scaleY, bool flipX, bool flipY, float originX, float originY, float alpha) {
+    if (sheetId < 0 || sheetId >= (int)spriteSheets.size()) return;
+    RenderCmd cmd{};
+    cmd.type = RenderCmdType::SpriteFrame;
+    cmd.spriteFrame.sheetId = sheetId;
+    cmd.spriteFrame.frame = frame;
+    cmd.spriteFrame.transform = SpriteTransform{x, y, rotationDeg, scaleX, scaleY, flipX, flipY, originX, originY};
+    cmd.spriteFrame.alpha = alpha;
     buffer.push_back(cmd);
 }
 
@@ -631,6 +688,33 @@ void Renderer2D::flush(int screenWidth, int screenHeight) {
                     currentTex = tex.handle;
                 }
                 pushQuad(batch, verts, 1.0f, 1.0f, 1.0f, cmd.sprite.alpha, true);
+            } else if (cmd.type == RenderCmdType::SpriteFrame) {
+                if (cmd.spriteFrame.sheetId < 0 || cmd.spriteFrame.sheetId >= (int)spriteSheets.size()) {
+                    continue;
+                }
+                const auto& sheet = spriteSheets[cmd.spriteFrame.sheetId];
+                if (sheet.frameW <= 0 || sheet.frameH <= 0 || sheet.texW <= 0 || sheet.texH <= 0) continue;
+                int maxFrames = sheet.cols * sheet.rows;
+                if (maxFrames <= 0) continue;
+                int frameIdx = cmd.spriteFrame.frame % maxFrames;
+                if (frameIdx < 0) frameIdx += maxFrames;
+                int col = frameIdx % sheet.cols;
+                int row = frameIdx / sheet.cols;
+                float u0 = (float)(col * sheet.frameW) / (float)sheet.texW;
+                float v0 = (float)(row * sheet.frameH) / (float)sheet.texH;
+                float u1 = (float)((col + 1) * sheet.frameW) / (float)sheet.texW;
+                float v1 = (float)((row + 1) * sheet.frameH) / (float)sheet.texH;
+                SpriteVerts verts = buildSpriteGeometry(cmd.spriteFrame.transform, (float)sheet.frameW, (float)sheet.frameH);
+                for (int i = 0; i < 4; ++i) {
+                    verts.uv[i][0] = verts.uv[i][0] < 0.5f ? u0 : u1;
+                    verts.uv[i][1] = verts.uv[i][1] < 0.5f ? v0 : v1;
+                }
+                if (currentMode != GL_TRIANGLES || currentTex != sheet.texture) {
+                    flushBatch(currentMode, currentTex);
+                    currentMode = GL_TRIANGLES;
+                    currentTex = sheet.texture;
+                }
+                pushQuad(batch, verts, 1.0f, 1.0f, 1.0f, cmd.spriteFrame.alpha, true);
             } else if (cmd.type == RenderCmdType::Text) {
                 if (cmd.text.fontId < 0 || cmd.text.fontId >= (int)fonts.size()) continue;
                 const Font& font = fonts[cmd.text.fontId];

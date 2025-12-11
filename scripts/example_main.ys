@@ -1,5 +1,17 @@
 var font;
 var player_hp = 100;
+var player_sheet;
+var idle_down;
+var idle_right;
+var idle_up;
+var move_down;
+var move_right;
+var move_up;
+var active_anim;
+var player_x = 200;
+var player_y = 200;
+var player_speed = 140;
+var facing = "down";
 import("util_module.ys");
 
 fn init() {
@@ -12,13 +24,106 @@ fn init() {
     var tbl = map("greeting", msg, "count", array_len(arr));
     print("Map greeting:", map_get(tbl, "greeting"), "has count:", map_has(tbl, "count"));
     font = load_font("../assets/fonts/monogram_bitmap.png", "../assets/fonts/monogram_bitmap.json");
+    player_sheet = load_sprite_sheet("../assets/asset_pack/characters/player.png", 48, 48);
+
+    fn row_frames(row) {
+        var frames = array();
+        var cols = 6;
+        var start = row * cols;
+        var i = 0;
+        while (i < cols) {
+            array_push(frames, start + i);
+            i = i + 1;
+        }
+        return frames;
+    }
+
+    idle_down = anim_create(player_sheet, row_frames(0), 4, true);
+    idle_right = anim_create(player_sheet, row_frames(1), 4, true);
+    idle_up = anim_create(player_sheet, row_frames(2), 4, true);
+    move_down = anim_create(player_sheet, row_frames(3), 10, true);
+    move_right = anim_create(player_sheet, row_frames(4), 10, true);
+    move_up = anim_create(player_sheet, row_frames(5), 10, true);
+    anim_set_origin(idle_down, 24, 24);
+    anim_set_origin(idle_right, 24, 24);
+    anim_set_origin(idle_up, 24, 24);
+    anim_set_origin(move_down, 24, 24);
+    anim_set_origin(move_right, 24, 24);
+    anim_set_origin(move_up, 24, 24);
+    anim_set_scale(idle_down, 2, 2);
+    anim_set_scale(idle_right, 2, 2);
+    anim_set_scale(idle_up, 2, 2);
+    anim_set_scale(move_down, 2, 2);
+    anim_set_scale(move_right, 2, 2);
+    anim_set_scale(move_up, 2, 2);
+    active_anim = idle_down;
     set_clear_color(0.08, 0.09, 0.12);
     print(msg);
 }
 
 fn update(dt) {
+    var move_x = 0;
+    var move_y = 0;
+    if (is_key_down("a") or is_key_down("left")) { move_x = move_x - 1; }
+    if (is_key_down("d") or is_key_down("right")) { move_x = move_x + 1; }
+    if (is_key_down("w") or is_key_down("up")) { move_y = move_y - 1; }
+    if (is_key_down("s") or is_key_down("down")) { move_y = move_y + 1; }
+
+    var moving = move_x != 0 or move_y != 0;
+    if (moving) {
+        if (move_x != 0 and move_y != 0) {
+            move_x = move_x * 0.7071;
+            move_y = move_y * 0.7071;
+        }
+        player_x = player_x + move_x * player_speed * dt;
+        player_y = player_y + move_y * player_speed * dt;
+        if (abs(move_x) > abs(move_y)) {
+            if (move_x > 0) { facing = "right"; }
+            else { facing = "left"; }
+        } else {
+            if (move_y > 0) { facing = "down"; }
+            else { facing = "up"; }
+        }
+    }
+
+    if (moving) {
+        if (facing == "down") active_anim = move_down;
+        else if (facing == "up") active_anim = move_up;
+        else active_anim = move_right;
+        anim_play(active_anim, false);
+        anim_play(idle_down, false);
+        anim_play(idle_right, false);
+        anim_play(idle_up, false);
+    } else {
+        if (facing == "down") active_anim = idle_down;
+        else if (facing == "up") active_anim = idle_up;
+        else active_anim = idle_right;
+        anim_play(active_anim, false);
+        anim_stop(move_down);
+        anim_stop(move_right);
+        anim_stop(move_up);
+    }
+
+    var flip_left = facing == "left";
+    var flip_side = flip_left and (facing == "left" or facing == "right");
+    anim_set_flip(idle_down, false, false);
+    anim_set_flip(idle_right, flip_side, false);
+    anim_set_flip(idle_up, false, false);
+    anim_set_flip(move_down, false, false);
+    anim_set_flip(move_right, flip_side, false);
+    anim_set_flip(move_up, false, false);
+
+    anim_set_position(idle_down, player_x, player_y);
+    anim_set_position(idle_right, player_x, player_y);
+    anim_set_position(idle_up, player_x, player_y);
+    anim_set_position(move_down, player_x, player_y);
+    anim_set_position(move_right, player_x, player_y);
+    anim_set_position(move_up, player_x, player_y);
+
     draw_text(font, "Yuki text demo", 16, 20, "scale", 2, "color", 1, 1, 0.85, 1);
     draw_text(font, "Wrapped and centered text that shows the new font pipeline in action.", 200, 90, "align", "center", "max_width", 220, "line_height", 14);
     draw_text(font, "HP: " + player_hp, 16, 60, "scale", 2, "color", 0.9, 0.8, 0.3, 1);
     draw_text(font, "Console: ~ then 'player_hp = 50;'", 16, 80, "color", 0.7, 0.9, 1, 1);
+    draw_text(font, "WASD/arrows to move the player sprite", 16, 100, "color", 0.7, 0.9, 1, 1);
+    anim_draw(active_anim);
 }

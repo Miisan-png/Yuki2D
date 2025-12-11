@@ -21,7 +21,7 @@ struct SpriteTransform {
         : x(px), y(py), rotationDeg(rotDeg), scaleX(sx), scaleY(sy), flipX(fx), flipY(fy), originX(ox), originY(oy) {}
 };
 
-enum class RenderCmdType { Rect, Sprite, Text };
+enum class RenderCmdType { Rect, Sprite, Text, SpriteFrame };
 
 struct RenderCmd {
     RenderCmdType type;
@@ -39,6 +39,12 @@ struct RenderCmd {
         SpriteTransform transform;
         float alpha = 1.0f;
     } sprite;
+    struct SpriteFrameData {
+        int sheetId = -1;
+        int frame = 0;
+        SpriteTransform transform;
+        float alpha = 1.0f;
+    } spriteFrame;
     struct TextData {
         int fontId = -1;
         std::string text;
@@ -64,6 +70,8 @@ public:
     int loadSprite(const std::string& path);
     void drawSprite(int id, float x, float y);
     void drawSpriteEx(int id, float x, float y, float rotationDeg, float scaleX, float scaleY, bool flipX, bool flipY, float originX = -1.0f, float originY = -1.0f, float alpha = 1.0f);
+    int loadSpriteSheet(const std::string& path, int frameW, int frameH);
+    void drawSpriteFrame(int sheetId, int frame, float x, float y, float rotationDeg, float scaleX, float scaleY, bool flipX, bool flipY, float originX = -1.0f, float originY = -1.0f, float alpha = 1.0f);
     int loadFont(const std::string& imagePath, const std::string& metricsPath);
     void drawText(int fontId, const std::string& text, float x, float y);
     void drawTextEx(int fontId, const std::string& text, float x, float y, float scale, float r, float g, float b, float a, const std::string& align, float maxWidth, float lineHeight);
@@ -74,6 +82,15 @@ public:
         unsigned int handle;
         int w;
         int h;
+    };
+    struct SpriteSheet {
+        unsigned int texture = 0;
+        int texW = 0;
+        int texH = 0;
+        int frameW = 0;
+        int frameH = 0;
+        int cols = 0;
+        int rows = 0;
     };
     struct FontGlyph {
         float u0, v0, u1, v1;
@@ -133,6 +150,7 @@ private:
     int uniformMvp = -1;
     int uniformTex = -1;
     bool graphicsReady = false;
+    std::vector<SpriteSheet> spriteSheets;
 };
 
 } // namespace yuki
