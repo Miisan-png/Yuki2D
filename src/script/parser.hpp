@@ -12,10 +12,13 @@ class Parser {
 public:
     Parser(const std::vector<Token>& tokens);
     std::vector<std::unique_ptr<Stmt>> parse();
+    bool hadError() const { return !errors.empty(); }
+    const std::vector<std::string>& getErrors() const { return errors; }
 
 private:
     const std::vector<Token>& tokens;
     int current = 0;
+    std::vector<std::string> errors;
 
     std::unique_ptr<Stmt> declaration();
     std::unique_ptr<Stmt> funDecl();

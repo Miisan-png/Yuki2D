@@ -84,6 +84,7 @@ std::vector<Token> Tokenizer::scanTokens() {
                     }
                     if (val == "true") tokens.push_back({TokenType::True, "true"});
                     else if (val == "false") tokens.push_back({TokenType::False, "false"});
+                    else if (val == "nil") tokens.push_back({TokenType::Nil, "nil"});
                     else if (val == "fn") tokens.push_back({TokenType::Identifier, "fn"});
                     else if (val == "var") tokens.push_back({TokenType::Identifier, "var"});
                     else if (val == "if") tokens.push_back({TokenType::Identifier, "if"});

@@ -1,5 +1,6 @@
 #include "interpreter.hpp"
 #include "../core/engine_bindings.hpp"
+#include "../core/log.hpp"
 #include "builtins.hpp"
 #include <iostream>
 #include <cmath>
@@ -43,7 +44,7 @@ bool isEqual(const Value& a, const Value& b) {
 }
 
 Value Interpreter::callFunction(FunctionValue* fn, const std::vector<Value>& args) {
-    if (!fn) return Value::nilVal();
+    if (!fn || hasRuntimeErrors()) return Value::nilVal();
 
     if (fn->isNative) {
         if (fn->nativeFn) return fn->nativeFn(args);
@@ -78,12 +79,13 @@ Value Interpreter::callFunction(FunctionValue* fn, const std::vector<Value>& arg
 }
 
 Value Interpreter::callFunction(const Value& fn, const std::vector<Value>& args) {
+    if (hasRuntimeErrors()) return Value::nilVal();
     if (!fn.isFunction()) return Value::nilVal();
     return callFunction(fn.functionVal, args);
 }
 
 Value Interpreter::evalExpr(const Expr* expr) {
-    if (!expr) return Value::nilVal();
+    if (!expr || hasRuntimeErrors()) return Value::nilVal();
 
     switch (expr->getKind()) {
         case ExprKind::Literal: {
@@ -108,6 +110,7 @@ Value Interpreter::evalExpr(const Expr* expr) {
                 allocatedFunctions.push_back(fn);
                 return Value::function(fn);
             }
+            reportRuntimeError("Undefined identifier '" + v->name + "'");
             return Value::nilVal();
         }
         case ExprKind::AssignExpr: {
@@ -178,7 +181,7 @@ Value Interpreter::evalExpr(const Expr* expr) {
 }
 
 Value Interpreter::evalStmt(const Stmt* stmt) {
-    if (!stmt) return Value::nilVal();
+    if (!stmt || hasRuntimeErrors()) return Value::nilVal();
 
     switch (stmt->getKind()) {
         case StmtKind::Expression: {
@@ -259,11 +262,17 @@ Value Interpreter::exec(const std::vector<std::unique_ptr<Stmt>>& statements) {
     try {
         for (const auto& stmt : statements) {
             evalStmt(stmt.get());
+            if (hasRuntimeErrors()) break;
         }
     } catch (const ReturnSignal& sig) {
         return sig.value;
     }
     return Value::nilVal();
+}
+
+void Interpreter::reportRuntimeError(const std::string& message) {
+    runtimeErrors.push_back(message);
+    logError(message);
 }
 
 }

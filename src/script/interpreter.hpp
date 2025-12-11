@@ -26,6 +26,8 @@ public:
     Value callFunction(FunctionValue* fn, const std::vector<Value>& args);
     Value callFunction(const Value& fn, const std::vector<Value>& args);
     Value exec(const std::vector<std::unique_ptr<Stmt>>& statements);
+    bool hasRuntimeErrors() const { return !runtimeErrors.empty(); }
+    const std::vector<std::string>& getRuntimeErrors() const { return runtimeErrors; }
     
     void pushEnv(std::shared_ptr<Environment> newEnv);
     void popEnv();
@@ -34,8 +36,11 @@ public:
     std::shared_ptr<Environment> env; // Current environment
 
 private:
+    void reportRuntimeError(const std::string& message);
+
     std::unordered_map<std::string, NativeFn> builtins;
-    std::vector<FunctionValue*> allocatedFunctions; 
+    std::vector<FunctionValue*> allocatedFunctions;
+    std::vector<std::string> runtimeErrors;
 };
 
 }

@@ -27,15 +27,24 @@ void YukiRunner::run(Window& window) {
     std::vector<Token> tokens = tokenizer.scanTokens();
     Parser parser(tokens);
     std::vector<std::unique_ptr<Stmt>> statements = parser.parse();
+    if (parser.hadError()) {
+        for (const auto& err : parser.getErrors()) {
+            logError(err);
+        }
+        return;
+    }
     Interpreter interpreter;
     Renderer2D renderer;
-    EngineBindings::init(&window, &renderer);
+    EngineBindings::init(&window, &renderer, &interpreter);
     std::filesystem::path scriptDir = std::filesystem::path(scriptPath).parent_path();
     EngineBindings::setAssetBase(scriptDir.string());
     initInput(window);
     Value initFn = Value::nilVal();
     Value updateFn = Value::nilVal();
     interpreter.exec(statements);
+    if (interpreter.hasRuntimeErrors()) {
+        return;
+    }
     auto initVal = interpreter.env->get("init");
     auto updateVal = interpreter.env->get("update");
     if (initVal.has_value()) initFn = initVal.value();
@@ -45,17 +54,29 @@ void YukiRunner::run(Window& window) {
         interpreter.callFunction(initFn, noArgs);
     }
     Time time;
+    bool debugToggled = renderer.isDebugEnabled();
     while (!window.shouldClose()) {
         time.update();
         float dt = time.deltaTime();
         updateInput(window);
+        if (isKeyPressed(GLFW_KEY_F3)) {
+            debugToggled = !debugToggled;
+            renderer.setDebugEnabled(debugToggled);
+        }
+        EngineBindings::update(dt);
         window.clear();
         if (updateFn.isFunction()) {
             std::vector<Value> args;
             args.push_back(Value::number(dt));
             interpreter.callFunction(updateFn, args);
         }
-        renderer.flush(window.getWidth(), window.getHeight());
+        if (interpreter.hasRuntimeErrors()) {
+            break;
+        }
+        int fbW = 0;
+        int fbH = 0;
+        window.getFramebufferSize(fbW, fbH);
+        renderer.flush(fbW, fbH);
         window.swapBuffers();
         window.pollEvents();
     }

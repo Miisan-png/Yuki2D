@@ -11,6 +11,7 @@ public:
     void swapBuffers();
     void clear();
     void setClearColor(float r, float g, float b);
+    void getFramebufferSize(int& width, int& height) const;
     GLFWwindow* getNativeWindow() const;
     int getWidth() const;
     int getHeight() const;

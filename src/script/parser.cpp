@@ -8,7 +8,10 @@ Parser::Parser(const std::vector<Token>& tokens) : tokens(tokens) {}
 std::vector<std::unique_ptr<Stmt>> Parser::parse() {
     std::vector<std::unique_ptr<Stmt>> statements;
     while (!isAtEnd()) {
-        statements.push_back(declaration());
+        std::unique_ptr<Stmt> stmt = declaration();
+        if (stmt) {
+            statements.push_back(std::move(stmt));
+        }
     }
     return statements;
 }
@@ -273,6 +276,7 @@ std::unique_ptr<Expr> Parser::finishCall(std::unique_ptr<Expr> callee) {
 std::unique_ptr<Expr> Parser::primary() {
     if (match({TokenType::False})) return std::make_unique<Literal>("false");
     if (match({TokenType::True})) return std::make_unique<Literal>("true");
+    if (match({TokenType::Nil})) return std::make_unique<Literal>("nil");
     
     if (match({TokenType::Number, TokenType::String})) {
         return std::make_unique<Literal>(previous().text);
@@ -344,7 +348,9 @@ Token Parser::consume(TokenType type, const std::string& message) {
 }
 
 void Parser::error(Token token, const std::string& message) {
-    std::cerr << "[Error] at '" << token.text << "': " << message << std::endl;
+    std::string msg = "[Parser] at '" + token.text + "': " + message;
+    errors.push_back(msg);
+    std::cerr << msg << std::endl;
 }
 
 void Parser::synchronize() {
