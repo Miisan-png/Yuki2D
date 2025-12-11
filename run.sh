@@ -3,4 +3,4 @@ mkdir -p build
 cd build
 cmake ..
 cmake --build .
-./yuki2d ../scripts/example_main.ys
+./yuki2d ../demo/main.ys

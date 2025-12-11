@@ -1,0 +1,28 @@
+var font;
+import("util_module.ys");
+import("player.ys");
+
+fn init() {
+    print("Loading font");
+    greet("Yuki");
+    var msg = get_message();
+    var arr = array(1, 2, 3);
+    array_push(arr, 4);
+    print("Array len:", array_len(arr), "item0:", array_get(arr, 0));
+    var tbl = map("greeting", msg, "count", array_len(arr));
+    print("Map greeting:", map_get(tbl, "greeting"), "has count:", map_has(tbl, "count"));
+    font = load_font("../assets/fonts/monogram_bitmap.png", "../assets/fonts/monogram_bitmap.json");
+    player_init();
+    set_clear_color(0.08, 0.09, 0.12);
+    print(msg);
+}
+
+fn update(dt) {
+    player_update(dt);
+    var hp = player_get_hp();
+    draw_text(font, "Yuki text demo", 16, 20, "scale", 2, "color", 1, 1, 0.85, 1);
+    draw_text(font, "Wrapped and centered text that shows the new font pipeline in action.", 200, 90, "align", "center", "max_width", 220, "line_height", 14);
+    draw_text(font, "HP: " + hp, 16, 60, "scale", 2, "color", 0.9, 0.8, 0.3, 1);
+    draw_text(font, "Console: ~ then 'player_set_hp(50);'", 16, 80, "color", 0.7, 0.9, 1, 1);
+    draw_text(font, "WASD/arrows to move the player sprite", 16, 100, "color", 0.7, 0.9, 1, 1);
+}
