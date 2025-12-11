@@ -26,6 +26,7 @@ public:
     Value callFunction(FunctionValue* fn, const std::vector<Value>& args);
     Value callFunction(const Value& fn, const std::vector<Value>& args);
     Value exec(const std::vector<std::unique_ptr<Stmt>>& statements);
+    void clearRuntimeErrors();
     void retainModule(std::vector<std::unique_ptr<Stmt>>&& statements);
     bool hasRuntimeErrors() const { return !runtimeErrors.empty(); }
     const std::vector<std::string>& getRuntimeErrors() const { return runtimeErrors; }

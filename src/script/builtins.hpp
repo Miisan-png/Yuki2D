@@ -17,6 +17,8 @@ namespace yuki {
     Value builtinArrayConcat(const std::vector<Value>& args);
     Value builtinArrayClear(const std::vector<Value>& args);
     Value builtinArrayIndexOf(const std::vector<Value>& args);
+    Value builtinArrayShuffle(const std::vector<Value>& args);
+    Value builtinArrayChoice(const std::vector<Value>& args);
     Value builtinMap(const std::vector<Value>& args);
     Value builtinMapSet(const std::vector<Value>& args);
     Value builtinMapGet(const std::vector<Value>& args);
@@ -34,4 +36,8 @@ namespace yuki {
     Value builtinJoin(const std::vector<Value>& args);
     Value builtinStrReplace(const std::vector<Value>& args);
     Value builtinStrSplit(const std::vector<Value>& args);
+    Value builtinTypeOf(const std::vector<Value>& args);
+    Value builtinAssert(const std::vector<Value>& args);
+    Value builtinRandf(const std::vector<Value>& args);
+    Value builtinRandi(const std::vector<Value>& args);
 }

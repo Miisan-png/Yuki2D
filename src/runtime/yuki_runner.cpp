@@ -9,6 +9,7 @@
 #include "../script/parser.hpp"
 #include "../script/ast.hpp"
 #include "../script/interpreter.hpp"
+#include "dev_console.hpp"
 #include <string>
 #include <vector>
 #include <GLFW/glfw3.h>
@@ -35,6 +36,7 @@ void YukiRunner::run(Window& window) {
     }
     Interpreter interpreter;
     Renderer2D renderer;
+    DevConsole console(&renderer, &interpreter);
     EngineBindings::init(&window, &renderer, &interpreter);
     std::filesystem::path scriptDir = std::filesystem::path(scriptPath).parent_path();
     EngineBindings::setAssetBase(scriptDir.string());
@@ -60,6 +62,7 @@ void YukiRunner::run(Window& window) {
         time.update();
         float dt = time.deltaTime();
         updateInput(window);
+        console.updateInput();
         if (isKeyPressed(GLFW_KEY_F3)) {
             debugToggled = !debugToggled;
             renderer.setDebugEnabled(debugToggled);
@@ -78,6 +81,20 @@ void YukiRunner::run(Window& window) {
         int fbH = 0;
         window.getFramebufferSize(fbW, fbH);
         renderer.flush(fbW, fbH);
+        if (console.isActive()) {
+            float prevX = renderer.getCameraX();
+            float prevY = renderer.getCameraY();
+            float prevZ = renderer.getCameraZoom();
+            float prevR = renderer.getCameraRotation();
+            renderer.setCamera(0.0f, 0.0f);
+            renderer.setCameraZoom(1.0f);
+            renderer.setCameraRotation(0.0f);
+            console.drawOverlay(fbW, fbH);
+            renderer.flush(fbW, fbH);
+            renderer.setCamera(prevX, prevY);
+            renderer.setCameraZoom(prevZ);
+            renderer.setCameraRotation(prevR);
+        }
         window.swapBuffers();
         window.pollEvents();
     }

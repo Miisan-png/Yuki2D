@@ -277,6 +277,10 @@ void Interpreter::retainModule(std::vector<std::unique_ptr<Stmt>>&& statements) 
     ownedModules.push_back(std::move(statements));
 }
 
+void Interpreter::clearRuntimeErrors() {
+    runtimeErrors.clear();
+}
+
 void Interpreter::reportRuntimeError(const std::string& message) {
     std::string msg = message;
     if (!callStack.empty()) {

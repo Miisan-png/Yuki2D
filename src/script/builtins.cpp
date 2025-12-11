@@ -3,6 +3,8 @@
 #include <iostream>
 #include <unordered_map>
 #include <cmath>
+#include <random>
+#include <algorithm>
 
 namespace yuki {
 
@@ -89,6 +91,18 @@ Value builtinArrayIndexOf(const std::vector<Value>& args) {
         }
     }
     return Value::number(-1);
+}
+Value builtinArrayShuffle(const std::vector<Value>& args) {
+    if (args.empty() || !args[0].isArray() || !args[0].arrayPtr) return Value::nilVal();
+    static std::mt19937 rng{std::random_device{}()};
+    std::shuffle(args[0].arrayPtr->begin(), args[0].arrayPtr->end(), rng);
+    return Value::nilVal();
+}
+Value builtinArrayChoice(const std::vector<Value>& args) {
+    if (args.empty() || !args[0].isArray() || !args[0].arrayPtr || args[0].arrayPtr->empty()) return Value::nilVal();
+    static std::mt19937 rng{std::random_device{}()};
+    std::uniform_int_distribution<int> dist(0, (int)args[0].arrayPtr->size() - 1);
+    return (*args[0].arrayPtr)[dist(rng)];
 }
 Value builtinMap(const std::vector<Value>& args) {
     std::unordered_map<std::string, Value> m;
@@ -221,6 +235,50 @@ Value builtinStrSplit(const std::vector<Value>& args) {
     parts.push_back(Value::string(s.substr(start)));
     return Value::array(parts);
 }
+Value builtinTypeOf(const std::vector<Value>& args) {
+    if (args.empty()) return Value::string("nil");
+    switch (args[0].type) {
+        case ValueType::Nil: return Value::string("nil");
+        case ValueType::Number: return Value::string("number");
+        case ValueType::Bool: return Value::string("bool");
+        case ValueType::String: return Value::string("string");
+        case ValueType::Function: return Value::string("function");
+        case ValueType::Map: return Value::string("map");
+        case ValueType::Array: return Value::string("array");
+    }
+    return Value::string("unknown");
+}
+Value builtinAssert(const std::vector<Value>& args) {
+    if (args.empty()) return Value::nilVal();
+    bool ok = false;
+    const Value& v = args[0];
+    if (v.isBool()) ok = v.boolVal;
+    else if (v.isNumber()) ok = v.numberVal != 0;
+    else ok = !v.isNil();
+    if (!ok) {
+        std::string msg = args.size() > 1 ? args[1].toString() : "assert failed";
+        std::cerr << "[Assert] " << msg << std::endl;
+    }
+    return Value::nilVal();
+}
+Value builtinRandf(const std::vector<Value>& args) {
+    double min = 0.0, max = 1.0;
+    if (args.size() >= 1 && args[0].isNumber()) min = args[0].numberVal;
+    if (args.size() >= 2 && args[1].isNumber()) max = args[1].numberVal;
+    if (max < min) std::swap(min, max);
+    static std::mt19937 rng{std::random_device{}()};
+    std::uniform_real_distribution<double> dist(min, max);
+    return Value::number(dist(rng));
+}
+Value builtinRandi(const std::vector<Value>& args) {
+    int min = 0, max = 1;
+    if (args.size() >= 1 && args[0].isNumber()) min = (int)args[0].numberVal;
+    if (args.size() >= 2 && args[1].isNumber()) max = (int)args[1].numberVal;
+    if (max < min) std::swap(min, max);
+    static std::mt19937 rng{std::random_device{}()};
+    std::uniform_int_distribution<int> dist(min, max);
+    return Value::number((double)dist(rng));
+}
 
 void registerScriptBuiltins(std::unordered_map<std::string, NativeFn>& builtins) {
     builtins["print"] = builtinPrint;
@@ -234,6 +292,8 @@ void registerScriptBuiltins(std::unordered_map<std::string, NativeFn>& builtins)
     builtins["array_concat"] = builtinArrayConcat;
     builtins["array_clear"] = builtinArrayClear;
     builtins["array_index_of"] = builtinArrayIndexOf;
+    builtins["array_shuffle"] = builtinArrayShuffle;
+    builtins["array_choice"] = builtinArrayChoice;
     builtins["map"] = builtinMap;
     builtins["map_set"] = builtinMapSet;
     builtins["map_get"] = builtinMapGet;
@@ -251,6 +311,10 @@ void registerScriptBuiltins(std::unordered_map<std::string, NativeFn>& builtins)
     builtins["join"] = builtinJoin;
     builtins["str_replace"] = builtinStrReplace;
     builtins["str_split"] = builtinStrSplit;
+    builtins["typeof"] = builtinTypeOf;
+    builtins["assert"] = builtinAssert;
+    builtins["randf"] = builtinRandf;
+    builtins["randi"] = builtinRandi;
     builtins["sqrt"] = [](const std::vector<Value>& args) -> Value {
         if (args.size() >= 1 && args[0].isNumber()) return Value::number(std::sqrt(args[0].numberVal));
         return Value::number(0);
