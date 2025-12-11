@@ -18,4 +18,10 @@ namespace yuki {
     Value builtinMapGet(const std::vector<Value>& args);
     Value builtinMapHas(const std::vector<Value>& args);
     Value builtinMapKeys(const std::vector<Value>& args);
+    Value builtinStrLen(const std::vector<Value>& args);
+    Value builtinStrLower(const std::vector<Value>& args);
+    Value builtinStrUpper(const std::vector<Value>& args);
+    Value builtinStrSub(const std::vector<Value>& args);
+    Value builtinStrFind(const std::vector<Value>& args);
+    Value builtinJoin(const std::vector<Value>& args);
 }

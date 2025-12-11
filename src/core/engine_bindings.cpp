@@ -15,6 +15,7 @@
 #include <ctime>
 #include <cmath>
 #include <unordered_map>
+#include <unordered_set>
 #include <algorithm>
 #include <filesystem>
 #include <utility>
@@ -87,6 +88,7 @@ static std::unordered_map<int, int> g_TweenParallelOwner;
 static int g_TweenCounter = 1;
 static int g_SequenceCounter = 1;
 static int g_ParallelCounter = 1;
+static std::unordered_set<std::string> g_LoadedModules;
 void EngineBindings::init(Window* window, Renderer2D* renderer, Interpreter* interpreter) {
     g_Window = window;
     g_Renderer = renderer;
@@ -460,11 +462,29 @@ Value engineLog(const std::vector<Value>& args) {
 Value engineImport(const std::vector<Value>& args) {
     if (args.empty() || !g_Interpreter) return Value::nilVal();
     std::filesystem::path p(args[0].toString());
-    if (!p.is_absolute() && !g_AssetBase.empty()) {
-        p = std::filesystem::path(g_AssetBase) / p;
+    if (p.extension().empty()) p.replace_extension(".ys");
+    if (!p.is_absolute() && !g_AssetBase.empty()) p = std::filesystem::path(g_AssetBase) / p;
+    std::error_code ec;
+    std::filesystem::path canon = std::filesystem::weakly_canonical(p, ec);
+    if (ec) canon = p;
+    std::string key = canon.string();
+    if (!std::filesystem::exists(canon)) {
+        logError("Import path not found: " + key);
+        return Value::nilVal();
+    }
+    std::optional<std::string> alias;
+    if (args.size() > 1 && args[1].isString()) alias = args[1].toString();
+    if (g_LoadedModules.count(key)) {
+        if (alias) {
+            auto envVal = g_Interpreter->globals->get(*alias);
+            if (envVal.has_value()) return envVal.value();
+        }
+        auto exports = g_Interpreter->globals->get("exports");
+        if (exports.has_value()) return exports.value();
+        return Value::nilVal();
     }
     logInfo("Importing " + p.string());
-    ScriptLoader loader(p.string());
+    ScriptLoader loader(canon.string());
     std::string content = loader.load();
     Tokenizer tokenizer(content);
     std::vector<Token> tokens = tokenizer.scanTokens();
@@ -485,6 +505,13 @@ Value engineImport(const std::vector<Value>& args) {
         return Value::nilVal();
     }
     g_Interpreter->retainModule(std::move(statements));
+    g_LoadedModules.insert(key);
+    if (alias) {
+        auto envVal = g_Interpreter->globals->get(*alias);
+        if (envVal.has_value()) return envVal.value();
+    }
+    auto exports = g_Interpreter->globals->get("exports");
+    if (exports.has_value()) return exports.value();
     return Value::nilVal();
 }
 Value engineTime(const std::vector<Value>&) {

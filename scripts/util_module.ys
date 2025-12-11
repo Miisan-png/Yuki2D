@@ -3,5 +3,10 @@ fn greet(name) {
 }
 
 fn get_message() {
-    return "ewaewe.";
+    return "Imported message body.";
 }
+
+var util = map();
+map_set(util, "greet", greet);
+map_set(util, "get_message", get_message);
+exports = util;

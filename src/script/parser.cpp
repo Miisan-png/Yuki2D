@@ -277,6 +277,8 @@ std::unique_ptr<Expr> Parser::primary() {
     if (match({TokenType::False})) return std::make_unique<Literal>("false");
     if (match({TokenType::True})) return std::make_unique<Literal>("true");
     if (match({TokenType::Nil})) return std::make_unique<Literal>("nil");
+    if (match({TokenType::LeftBracket})) return arrayLiteral();
+    if (match({TokenType::LeftBrace})) return mapLiteral();
     
     if (match({TokenType::Number, TokenType::String})) {
         return std::make_unique<Literal>(previous().text);
@@ -294,6 +296,33 @@ std::unique_ptr<Expr> Parser::primary() {
 
     error(peek(), "Expect expression.");
     throw std::runtime_error("Expect expression.");
+}
+
+std::unique_ptr<Expr> Parser::arrayLiteral() {
+    std::vector<std::unique_ptr<Expr>> elements;
+    if (!check(TokenType::RightBracket)) {
+        do {
+            elements.push_back(expression());
+        } while (match({TokenType::Comma}));
+    }
+    consume(TokenType::RightBracket, "Expect ']' after array literal.");
+    auto arr = std::make_unique<Call>(std::make_unique<VarExpr>("array"), std::move(elements));
+    return arr;
+}
+
+std::unique_ptr<Expr> Parser::mapLiteral() {
+    std::vector<std::unique_ptr<Expr>> args;
+    if (!check(TokenType::RightBrace)) {
+        do {
+            Token key = consume(TokenType::Identifier, "Expect identifier key in map literal.");
+            consume(TokenType::Colon, "Expect ':' after key in map literal.");
+            args.push_back(std::make_unique<Literal>(key.text));
+            args.push_back(expression());
+        } while (match({TokenType::Comma}));
+    }
+    consume(TokenType::RightBrace, "Expect '}' after map literal.");
+    auto m = std::make_unique<Call>(std::make_unique<VarExpr>("map"), std::move(args));
+    return m;
 }
 
 bool Parser::match(const std::vector<TokenType>& types) {

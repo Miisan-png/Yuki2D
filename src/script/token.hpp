@@ -5,6 +5,7 @@ namespace yuki {
 enum class TokenType {
     Identifier, Number, String,
     Nil,
+    LeftBracket, RightBracket,
     LeftParen, RightParen, LeftBrace, RightBrace,
     Comma, Colon, Semicolon,
     Plus, Minus, Star, Slash, Percent, Equal, Bang,

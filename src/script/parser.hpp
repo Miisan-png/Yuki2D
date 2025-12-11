@@ -43,6 +43,8 @@ private:
     std::unique_ptr<Expr> call();
     std::unique_ptr<Expr> finishCall(std::unique_ptr<Expr> callee);
     std::unique_ptr<Expr> primary();
+    std::unique_ptr<Expr> arrayLiteral();
+    std::unique_ptr<Expr> mapLiteral();
 
     bool match(const std::vector<TokenType>& types);
     bool matchKeyword(const std::string& keyword);

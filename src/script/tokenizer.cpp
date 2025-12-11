@@ -74,6 +74,8 @@ std::vector<Token> Tokenizer::scanTokens() {
                 tokens.push_back({TokenType::String, val, startLine, startCol});
                 break;
             }
+            case '[': tokens.push_back({TokenType::LeftBracket, "[", startLine, startCol}); break;
+            case ']': tokens.push_back({TokenType::RightBracket, "]", startLine, startCol}); break;
             default:
                 if (std::isdigit(c)) {
                     std::string val;
