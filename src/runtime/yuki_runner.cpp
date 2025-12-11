@@ -16,6 +16,10 @@
 namespace yuki {
 YukiRunner::YukiRunner(const std::string& scriptPath) : scriptPath(scriptPath) {}
 void YukiRunner::run(Window& window) {
+    if (!window.getNativeWindow()) {
+        yuki::logError("Window initialization failed; aborting run loop.");
+        return;
+    }
     ScriptLoader loader(scriptPath);
     std::string content = loader.load();
     Tokenizer tokenizer(content);
@@ -25,6 +29,7 @@ void YukiRunner::run(Window& window) {
     Interpreter interpreter;
     Renderer2D renderer;
     EngineBindings::init(&window, &renderer);
+    initInput(window);
     Value initFn = Value::nilVal();
     Value updateFn = Value::nilVal();
     interpreter.exec(statements);
@@ -40,6 +45,7 @@ void YukiRunner::run(Window& window) {
     while (!window.shouldClose()) {
         time.update();
         float dt = time.deltaTime();
+        updateInput(window);
         window.clear();
         if (updateFn.isFunction()) {
             std::vector<Value> args;

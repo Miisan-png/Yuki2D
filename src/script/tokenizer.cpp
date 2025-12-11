@@ -34,6 +34,7 @@ std::vector<Token> Tokenizer::scanTokens() {
                     current++;
                     tokens.push_back({TokenType::BangEqual, "!="});
                 } else {
+                    tokens.push_back({TokenType::Bang, "!"});
                 }
                 break;
             case '<':

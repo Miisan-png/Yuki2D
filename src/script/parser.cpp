@@ -52,6 +52,7 @@ std::unique_ptr<Stmt> Parser::varDecl() {
 std::unique_ptr<Stmt> Parser::statement() {
     if (matchKeyword("if")) return ifStatement();
     if (matchKeyword("while")) return whileStatement();
+    if (matchKeyword("for")) return forStatement();
     if (matchKeyword("return")) return returnStatement();
     if (check(TokenType::LeftBrace)) return block(); 
     return exprStmt();
@@ -75,6 +76,54 @@ std::unique_ptr<Stmt> Parser::whileStatement() {
     consume(TokenType::RightParen, "Expect ')' after while condition.");
     std::unique_ptr<Stmt> body = statement();
     return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
+}
+
+std::unique_ptr<Stmt> Parser::forStatement() {
+    consume(TokenType::LeftParen, "Expect '(' after 'for'.");
+
+    std::unique_ptr<Stmt> initializer;
+    if (match({TokenType::Semicolon})) {
+        initializer = nullptr;
+    } else if (matchKeyword("var")) {
+        initializer = varDecl();
+    } else {
+        initializer = exprStmt();
+    }
+
+    std::unique_ptr<Expr> condition;
+    if (!check(TokenType::Semicolon)) {
+        condition = expression();
+    }
+    consume(TokenType::Semicolon, "Expect ';' after loop condition.");
+
+    std::unique_ptr<Expr> increment;
+    if (!check(TokenType::RightParen)) {
+        increment = expression();
+    }
+    consume(TokenType::RightParen, "Expect ')' after for clauses.");
+
+    std::unique_ptr<Stmt> body = statement();
+
+    if (increment) {
+        std::vector<std::unique_ptr<Stmt>> stmts;
+        stmts.push_back(std::move(body));
+        stmts.push_back(std::make_unique<ExpressionStmt>(std::move(increment)));
+        body = std::make_unique<Block>(std::move(stmts));
+    }
+
+    if (!condition) {
+        condition = std::make_unique<Literal>("true");
+    }
+    body = std::make_unique<WhileStmt>(std::move(condition), std::move(body));
+
+    if (initializer) {
+        std::vector<std::unique_ptr<Stmt>> stmts;
+        stmts.push_back(std::move(initializer));
+        stmts.push_back(std::move(body));
+        body = std::make_unique<Block>(std::move(stmts));
+    }
+
+    return body;
 }
 
 std::unique_ptr<Stmt> Parser::returnStatement() {
@@ -185,10 +234,15 @@ std::unique_ptr<Expr> Parser::factor() {
 }
 
 std::unique_ptr<Expr> Parser::unary() {
+    if (match({TokenType::Bang})) {
+        Token op = previous();
+        std::unique_ptr<Expr> right = unary();
+        return std::make_unique<Unary>((int)op.type, op.text, std::move(right));
+    }
     if (match({TokenType::Minus})) { 
         Token op = previous();
         std::unique_ptr<Expr> right = unary();
-        return std::make_unique<Binary>(std::make_unique<Literal>("0"), (int)TokenType::Minus, "-", std::move(right));
+        return std::make_unique<Unary>((int)op.type, op.text, std::move(right));
     }
     return call();
 }

@@ -21,4 +21,7 @@ Value engineLoadSprite(const std::vector<Value>& args);
 Value engineDrawSprite(const std::vector<Value>& args);
 Value engineSin(const std::vector<Value>& args);
 Value engineCos(const std::vector<Value>& args);
+Value engineIsKeyDown(const std::vector<Value>& args);
+Value engineIsKeyPressed(const std::vector<Value>& args);
+Value engineIsKeyReleased(const std::vector<Value>& args);
 }

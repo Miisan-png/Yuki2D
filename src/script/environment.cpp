@@ -2,7 +2,7 @@
 
 namespace yuki {
 
-Environment::Environment(Environment* parent) : parent(parent) {}
+Environment::Environment(std::shared_ptr<Environment> parent) : parent(std::move(parent)) {}
 
 void Environment::define(const std::string& name, const Value& value) {
     values[name] = value;

@@ -16,7 +16,7 @@ public:
     int getHeight() const;
     const std::string& getTitle() const;
 private:
-    GLFWwindow* window;
+    GLFWwindow* window = nullptr;
     int m_width;
     int m_height;
     std::string m_title;

@@ -3,28 +3,21 @@
 #include "builtins.hpp"
 #include <iostream>
 #include <cmath>
+#include <memory>
 
 namespace yuki {
 
-Interpreter::Interpreter() : globals(new Environment(nullptr)), env(globals) {
+Interpreter::Interpreter() : globals(std::make_shared<Environment>(nullptr)), env(globals) {
     registerScriptBuiltins(builtins);
     EngineBindings::registerBuiltins(builtins);
 }
 
 Interpreter::~Interpreter() {
-    Environment* currentEnv = env;
-    while (currentEnv != globals && currentEnv != nullptr) {
-        Environment* temp = currentEnv;
-        currentEnv = currentEnv->parent;
-        delete temp;
-    }
-    if (globals) delete globals;
-    
     for (auto fn : allocatedFunctions) delete fn;
 }
 
-void Interpreter::pushEnv(Environment* newEnv) {
-    env = newEnv;
+void Interpreter::pushEnv(std::shared_ptr<Environment> newEnv) {
+    env = std::move(newEnv);
 }
 
 void Interpreter::popEnv() {
@@ -57,7 +50,7 @@ Value Interpreter::callFunction(FunctionValue* fn, const std::vector<Value>& arg
         return Value::nilVal();
     }
 
-    Environment* closure = new Environment(fn->closure);
+    std::shared_ptr<Environment> closure = std::make_shared<Environment>(fn->closure);
     for (size_t i = 0; i < fn->parameters.size(); ++i) {
         if (i < args.size()) {
             closure->define(fn->parameters[i], args[i]);
@@ -67,7 +60,7 @@ Value Interpreter::callFunction(FunctionValue* fn, const std::vector<Value>& arg
     }
 
     Value ret = Value::nilVal();
-    Environment* previous = env;
+    std::shared_ptr<Environment> previous = env;
     pushEnv(closure);
     
     try {
@@ -81,7 +74,6 @@ Value Interpreter::callFunction(FunctionValue* fn, const std::vector<Value>& arg
     }
     
     env = previous;
-    delete closure;
     return ret;
 }
 
@@ -126,11 +118,35 @@ Value Interpreter::evalExpr(const Expr* expr) {
             }
             return val;
         }
+        case ExprKind::Unary: {
+            const auto* u = static_cast<const Unary*>(expr);
+            Value right = evalExpr(u->right.get());
+            std::string op = u->op.lexeme;
+            if (op == "-") {
+                if (right.isNumber()) return Value::number(-right.numberVal);
+                return Value::number(0);
+            }
+            if (op == "!") {
+                return Value::boolean(!isTruthy(right));
+            }
+            return Value::nilVal();
+        }
         case ExprKind::Binary: {
             const auto* b = static_cast<const Binary*>(expr);
+            std::string op = b->op.lexeme;
+            if (op == "and") {
+                Value left = evalExpr(b->left.get());
+                if (!isTruthy(left)) return left;
+                return evalExpr(b->right.get());
+            }
+            if (op == "or") {
+                Value left = evalExpr(b->left.get());
+                if (isTruthy(left)) return left;
+                return evalExpr(b->right.get());
+            }
+
             Value left = evalExpr(b->left.get());
             Value right = evalExpr(b->right.get());
-            std::string op = b->op.lexeme;
             
             if (op == "+") {
                 if (left.isNumber() && right.isNumber()) return Value::number(left.numberVal + right.numberVal);
@@ -180,9 +196,8 @@ Value Interpreter::evalStmt(const Stmt* stmt) {
         }
         case StmtKind::Block: {
             const auto* bs = static_cast<const Block*>(stmt);
-            Environment* newEnv = new Environment(env);
+            std::shared_ptr<Environment> newEnv = std::make_shared<Environment>(env);
             execBlock(bs, newEnv);
-            delete newEnv;
             return Value::nilVal();
         }
         case StmtKind::Function: {
@@ -225,8 +240,8 @@ Value Interpreter::evalStmt(const Stmt* stmt) {
     return Value::nilVal();
 }
 
-Value Interpreter::execBlock(const Block* block, Environment* newEnv) {
-    Environment* previous = env;
+Value Interpreter::execBlock(const Block* block, std::shared_ptr<Environment> newEnv) {
+    std::shared_ptr<Environment> previous = env;
     pushEnv(newEnv);
     try {
         for (const auto& stmt : block->statements) {

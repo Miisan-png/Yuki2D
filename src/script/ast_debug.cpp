@@ -19,6 +19,10 @@ std::string printExpr(const Expr* expr) {
             const auto* a = static_cast<const AssignExpr*>(expr); // Renamed type
             return "(" + a->name + " = " + printExpr(a->value.get()) + ")";
         }
+        case ExprKind::Unary: {
+            const auto* u = static_cast<const Unary*>(expr);
+            return "(" + u->op.lexeme + printExpr(u->right.get()) + ")";
+        }
         case ExprKind::Binary: {
             const auto* b = static_cast<const Binary*>(expr);
             return "(" + printExpr(b->left.get()) + " " + b->op.lexeme + " " + printExpr(b->right.get()) + ")";

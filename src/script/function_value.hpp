@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace yuki {
 
@@ -18,7 +19,7 @@ struct FunctionValue {
     // Script Function
     std::vector<std::string> parameters;
     Block* body; // Owned by AST, not FunctionValue
-    Environment* closure; // Not owned, but must ensure lifetime or use shared_ptr in Environment
+    std::shared_ptr<Environment> closure; // Shared lifetime with captured scope
 
     // Native Function
     NativeFn nativeFn;

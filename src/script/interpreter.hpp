@@ -22,16 +22,16 @@ public:
 
     Value evalExpr(const Expr* expr);
     Value evalStmt(const Stmt* stmt);
-    Value execBlock(const Block* block, Environment* newEnv);
+    Value execBlock(const Block* block, std::shared_ptr<Environment> newEnv);
     Value callFunction(FunctionValue* fn, const std::vector<Value>& args);
     Value callFunction(const Value& fn, const std::vector<Value>& args);
     Value exec(const std::vector<std::unique_ptr<Stmt>>& statements);
     
-    void pushEnv(Environment* newEnv);
+    void pushEnv(std::shared_ptr<Environment> newEnv);
     void popEnv();
 
-    Environment* globals;
-    Environment* env; // Current environment
+    std::shared_ptr<Environment> globals;
+    std::shared_ptr<Environment> env; // Current environment
 
 private:
     std::unordered_map<std::string, NativeFn> builtins;

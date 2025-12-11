@@ -13,6 +13,7 @@ struct Literal;
 struct VarExpr; // Renamed from Variable
 struct AssignExpr; // Renamed from Assign
 struct Binary;
+struct Unary;
 struct Call;
 struct ExpressionStmt;
 struct VarDecl;
@@ -26,6 +27,7 @@ enum class ExprKind {
     Literal,
     VarExpr, // Renamed
     AssignExpr, // Renamed
+    Unary,
     Binary,
     Call
 };
@@ -90,6 +92,14 @@ struct Call : Expr {
     Call(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> arguments)
         : callee(std::move(callee)), arguments(std::move(arguments)) {}
     ExprKind getKind() const override { return ExprKind::Call; }
+};
+
+struct Unary : Expr {
+    struct Op { int type; std::string lexeme; } op;
+    std::unique_ptr<Expr> right;
+    Unary(int opType, std::string opLexeme, std::unique_ptr<Expr> right)
+        : op{opType, opLexeme}, right(std::move(right)) {}
+    ExprKind getKind() const override { return ExprKind::Unary; }
 };
 
 // Statements (Unchanged logic, just ensure consistency)

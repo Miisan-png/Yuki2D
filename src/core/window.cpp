@@ -17,7 +17,9 @@ Window::Window(int width, int height, const std::string& title)
     glfwMakeContextCurrent(window);
 }
 Window::~Window() {
-    glfwDestroyWindow(window);
+    if (window) {
+        glfwDestroyWindow(window);
+    }
     glfwTerminate();
 }
 bool Window::shouldClose() const {
