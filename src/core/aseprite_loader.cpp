@@ -120,9 +120,9 @@ bool loadAsepriteFile(const std::string& path, AseData& out) {
                             int dsty = cy + iy;
                             if (dstx < 0 || dsty < 0 || dstx >= w || dsty >= h) continue;
                             size_t dst = ((size_t)dsty * w + dstx) * 4;
-                            unsigned char b = celPixels[src + 0];
+                            unsigned char r = celPixels[src + 0];
                             unsigned char g = celPixels[src + 1];
-                            unsigned char r = celPixels[src + 2];
+                            unsigned char b = celPixels[src + 2];
                             unsigned char a = (unsigned char)((celPixels[src + 3] * opacity) / 255);
                             float af = a / 255.0f;
                             float inv = 1.0f - af;
