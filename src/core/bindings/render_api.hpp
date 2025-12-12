@@ -17,4 +17,5 @@ Value apiMeasureTextHeight(const std::vector<Value>& args);
 Value apiSetDebugDrawEnabled(const std::vector<Value>& args);
 Value apiDebugDrawRect(const std::vector<Value>& args);
 Value apiDebugDrawLine(const std::vector<Value>& args);
+Value apiSetVirtualResolution(const std::vector<Value>& args);
 } // namespace yuki

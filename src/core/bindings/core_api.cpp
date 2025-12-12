@@ -99,9 +99,9 @@ Value apiRandom(const std::vector<Value>& args) {
     return Value::number(r);
 }
 Value apiGetScreenSize(const std::vector<Value>&) {
-    if (!st.window) return Value::map({});
-    int w = 0, h = 0;
-    st.window->getFramebufferSize(w, h);
+    if (!st.window || !st.renderer) return Value::map({});
+    int w = st.renderer->getVirtualWidth();
+    int h = st.renderer->getVirtualHeight();
     std::unordered_map<std::string, Value> m;
     m["w"] = Value::number((double)w);
     m["h"] = Value::number((double)h);

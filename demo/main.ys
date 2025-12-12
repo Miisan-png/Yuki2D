@@ -4,6 +4,8 @@ import("player.ys");
 var wall_id;
 var screen_w = 1280;
 var screen_h = 720;
+var virtual_w = 640;
+var virtual_h = 360;
 var npc_sheet;
 var half_w = 640;
 var half_h = 360;
@@ -28,9 +30,10 @@ fn init() {
     if (map_has(sz, "w") and map_has(sz, "h")) {
         screen_w = map_get(sz, "w");
         screen_h = map_get(sz, "h");
-        half_w = screen_w * 0.5;
-        half_h = screen_h * 0.5;
     }
+    set_virtual_resolution(virtual_w, virtual_h);
+    half_w = virtual_w * 0.5;
+    half_h = virtual_h * 0.5;
     player_init();
     player_set_position(half_w, half_h);
     npc_sheet = load_sprite_sheet("asset_pack/characters/player.png", 48, 48);
@@ -53,8 +56,6 @@ fn init() {
 fn update(dt) {
     dbg_timer = dbg_timer + dt;
     player_update(dt);
-    var cx = player_get_x();
-    var cy = player_get_y();
     player_draw();
     draw_rect(300, 220, 120, 60, 0.2, 0.35, 0.5);
     if (npc_sheet >= 0) {

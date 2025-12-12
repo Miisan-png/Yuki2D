@@ -342,7 +342,7 @@ namespace {
     }
 }
 
-Renderer2D::Renderer2D() : spriteCounter(0), debugEnabled(true), camX(0.0f), camY(0.0f), camZoom(1.0f), camRot(0.0f) {}
+Renderer2D::Renderer2D() : spriteCounter(0), debugEnabled(true) {}
 
 Renderer2D::~Renderer2D() {
     for (const auto& tex : textures) {
@@ -655,17 +655,11 @@ float Renderer2D::measureTextHeight(int fontId, const std::string& text, float s
     return l.totalHeight;
 }
 
-void Renderer2D::setCamera(float x, float y) {
-    camX = x;
-    camY = y;
-}
-
-void Renderer2D::setCameraZoom(float zoom) {
-    if (zoom <= 0.01f) zoom = 0.01f;
-    camZoom = zoom;
-}
-void Renderer2D::setCameraRotation(float rotDeg) {
-    camRot = rotDeg;
+void Renderer2D::setVirtualResolution(int w, int h) {
+    if (w > 0 && h > 0) {
+        virtualW = w;
+        virtualH = h;
+    }
 }
 
 void Renderer2D::debugDrawRect(float x, float y, float w, float h, float r, float g, float b) {
@@ -698,7 +692,7 @@ void Renderer2D::flush(int screenWidth, int screenHeight) {
     }
 
     glViewport(0, 0, screenWidth, screenHeight);
-    Mat4 proj = ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f, -1.0f, 1.0f);
+    Mat4 proj = ortho(0.0f, (float)virtualW, (float)virtualH, 0.0f, -1.0f, 1.0f);
 
     glUseProgram(shaderProgram);
     glActiveTexture(GL_TEXTURE0);
@@ -727,16 +721,9 @@ void Renderer2D::flush(int screenWidth, int screenHeight) {
         glDrawArrays(mode, 0, (int)batch.size());
         batch.clear();
     };
-    auto setCameraUniform = [&](float cx, float cy, float cz, float cr) {
-        Mat4 s = scale(cz, cz, 1.0f);
-        Mat4 r = rotateZ(-cr);
-        Mat4 t = translate(-cx, -cy, 0.0f);
-        Mat4 view = mul(t, mul(r, s));
-        Mat4 mvp = mul(proj, view);
-        glUniformMatrix4fv(uniformMvp, 1, GL_FALSE, mvp.m);
-    };
 
-    setCameraUniform(camX, camY, camZoom, camRot);
+    // Camera removed: only projection matrix is used
+    glUniformMatrix4fv(uniformMvp, 1, GL_FALSE, proj.m);
 
     if (hasRender) {
         for (const auto& cmd : buffer) {

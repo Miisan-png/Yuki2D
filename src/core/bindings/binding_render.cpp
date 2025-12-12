@@ -18,5 +18,6 @@ void registerRenderBuiltins(std::unordered_map<std::string, NativeFn>& builtins)
     builtins["set_debug_draw_enabled"] = apiSetDebugDrawEnabled;
     builtins["debug_draw_rect"] = apiDebugDrawRect;
     builtins["debug_draw_line"] = apiDebugDrawLine;
+    builtins["set_virtual_resolution"] = apiSetVirtualResolution;
 }
 } // namespace yuki

@@ -57,3 +57,16 @@ fn update(dt) {
     anim_draw(active);
 }
 ```
+
+## Room-based camera follow
+```ys
+fn init() {
+    camera_follow_enable(true);
+    set_virtual_resolution(640, 360);
+    camera_follow_lerp(8);
+}
+fn update(dt) {
+    var pos = player_get_position();
+    camera_follow_target(map_get(pos, "x"), map_get(pos, "y"));
+}
+```

@@ -8,23 +8,11 @@
 #include <filesystem>
 #include <functional>
 #include <algorithm>
+#include <cmath>
 
 namespace yuki {
 namespace {
 BindingsState& st = bindingsState();
-
-void debugDrawColliders() {
-    if (!st.renderer || !st.renderer->isDebugEnabled()) return;
-    for (const auto& c : st.colliders) {
-        if (c.w <= 0.0f || c.h <= 0.0f) continue;
-        std::hash<std::string> h;
-        size_t hv = h(c.tag);
-        float r = ((hv >> 0) & 0xFF) / 255.0f;
-        float g = ((hv >> 8) & 0xFF) / 255.0f;
-        float b = ((hv >> 16) & 0xFF) / 255.0f;
-        st.renderer->debugDrawRect(c.x, c.y, c.w, c.h, r, g, b);
-    }
-}
 
 void hotReloadAse(double dt) {
     static double accum = 0.0;
@@ -77,6 +65,7 @@ void hotReloadAse(double dt) {
         logInfo("ase_reload: " + asset.path + " tags=" + std::to_string(asset.tagFrames.size()));
     }
 }
+
 } // namespace
 
 void EngineBindings::init(Window* window, Renderer2D* renderer, Interpreter* interpreter) {
@@ -99,7 +88,6 @@ void EngineBindings::update(double dt) {
     updateTweensTick(dt);
     cleanupTweens();
     updateAnimationsTick(dt);
-    debugDrawColliders();
 }
 
 void EngineBindings::registerBuiltins(std::unordered_map<std::string, NativeFn>& builtins) {

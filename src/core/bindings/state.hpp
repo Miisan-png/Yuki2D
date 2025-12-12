@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <filesystem>
+#include <limits>
 #include "../renderer2d.hpp"
 #include "../window.hpp"
 #include "../../script/value.hpp"

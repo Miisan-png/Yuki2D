@@ -56,16 +56,10 @@ GLFWwindow* Window::getNativeWindow() const {
     return window;
 }
 int Window::getWidth() const {
-    int w = m_width;
-    int h = m_height;
-    getFramebufferSize(w, h);
-    return w;
+    return m_width;
 }
 int Window::getHeight() const {
-    int w = m_width;
-    int h = m_height;
-    getFramebufferSize(w, h);
-    return h;
+    return m_height;
 }
 const std::string& Window::getTitle() const {
     return m_title;

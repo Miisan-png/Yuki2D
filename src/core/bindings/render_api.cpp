@@ -186,4 +186,11 @@ Value apiDebugDrawLine(const std::vector<Value>& args) {
     }
     return Value::nilVal();
 }
+Value apiSetVirtualResolution(const std::vector<Value>& args) {
+    if (args.size() < 2 || !st.renderer) return Value::nilVal();
+    int w = (int)args[0].numberVal;
+    int h = (int)args[1].numberVal;
+    st.renderer->setVirtualResolution(w, h);
+    return Value::nilVal();
+}
 } // namespace yuki

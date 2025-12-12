@@ -14,7 +14,7 @@ All functions are available globally after engine init. Booleans accept `true`/`
 - `draw_text(font_id, text, x, y, [k/v: scale, color r g b a, align left|center|right, max_width, line_height])`
 - `measure_text_width(font_id, text, scale=1, max_width=0, line_height=0)`
 - `measure_text_height(font_id, text, scale=1, max_width=0, line_height=0)`
-- Camera: `set_camera(x, y)`, `set_camera_zoom(z)`, `set_camera_rotation(deg)` (see renderer bindings if added).
+- Camera: `camera_set(x, y)`, `camera_set_zoom(z)`, `camera_set_rotation(deg)`, `camera_follow_target(x, y)`, `camera_follow_enable(on)`, `camera_follow_lerp(speed)`, `set_virtual_resolution(w, h)`
 
 ## Animation
 - `anim_create(sheet_id, frames_array, fps, loop_bool)` -> animId

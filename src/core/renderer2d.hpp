@@ -109,13 +109,9 @@ public:
         std::unordered_map<int, FontGlyph> glyphs;
     };
 
-    void setCamera(float x, float y);
-    void setCameraZoom(float zoom);
-    void setCameraRotation(float rotDeg);
-    float getCameraRotation() const { return camRot; }
-    float getCameraX() const { return camX; }
-    float getCameraY() const { return camY; }
-    float getCameraZoom() const { return camZoom; }
+    void setVirtualResolution(int w, int h);
+    int getVirtualWidth() const { return virtualW; }
+    int getVirtualHeight() const { return virtualH; }
 
     void debugDrawRect(float x, float y, float w, float h, float r, float g, float b);
     void debugDrawLine(float x1, float y1, float x2, float y2, float r, float g, float b);
@@ -139,10 +135,8 @@ private:
     std::vector<Font> fonts;
     std::vector<DebugCmd> debugBuffer;
     bool debugEnabled;
-    float camX;
-    float camY;
-    float camZoom;
-    float camRot;
+    int virtualW = 1280;
+    int virtualH = 720;
     unsigned int shaderProgram = 0;
     unsigned int vbo = 0;
     int attribPos = -1;
