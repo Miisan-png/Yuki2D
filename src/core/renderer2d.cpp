@@ -126,8 +126,8 @@ namespace {
 
     SpriteVerts buildSpriteGeometry(const SpriteTransform& t, float baseW, float baseH) {
         SpriteVerts out{};
-        float effectiveScaleX = t.scaleX * (t.flipX ? -1.0f : 1.0f);
-        float effectiveScaleY = t.scaleY * (t.flipY ? -1.0f : 1.0f);
+        float effectiveScaleX = std::abs(t.scaleX);
+        float effectiveScaleY = std::abs(t.scaleY);
         float pivotX = t.originX >= 0.0f ? t.originX : baseW * 0.5f;
         float pivotY = t.originY >= 0.0f ? t.originY : baseH * 0.5f;
         float pivotWorldX = t.x + pivotX * t.scaleX;
@@ -684,6 +684,16 @@ void Renderer2D::flush(int screenWidth, int screenHeight) {
                 }
                 const auto& tex = textures[cmd.sprite.id];
                 SpriteVerts verts = buildSpriteGeometry(cmd.sprite.transform, (float)tex.w, (float)tex.h);
+                if (cmd.sprite.transform.flipX) {
+                    for (int i = 0; i < 4; ++i) {
+                        verts.uv[i][0] = 1.0f - verts.uv[i][0];
+                    }
+                }
+                if (cmd.sprite.transform.flipY) {
+                    for (int i = 0; i < 4; ++i) {
+                        verts.uv[i][1] = 1.0f - verts.uv[i][1];
+                    }
+                }
                 if (currentMode != GL_TRIANGLES || currentTex != tex.handle) {
                     flushBatch(currentMode, currentTex);
                     currentMode = GL_TRIANGLES;
@@ -710,6 +720,16 @@ void Renderer2D::flush(int screenWidth, int screenHeight) {
                 for (int i = 0; i < 4; ++i) {
                     verts.uv[i][0] = verts.uv[i][0] < 0.5f ? u0 : u1;
                     verts.uv[i][1] = verts.uv[i][1] < 0.5f ? v0 : v1;
+                }
+                if (cmd.spriteFrame.transform.flipX) {
+                    for (int i = 0; i < 4; ++i) {
+                        verts.uv[i][0] = u0 + (u1 - verts.uv[i][0]);
+                    }
+                }
+                if (cmd.spriteFrame.transform.flipY) {
+                    for (int i = 0; i < 4; ++i) {
+                        verts.uv[i][1] = v0 + (v1 - verts.uv[i][1]);
+                    }
                 }
                 if (currentMode != GL_TRIANGLES || currentTex != sheet.texture) {
                     flushBatch(currentMode, currentTex);
