@@ -6,3 +6,7 @@
 - Collision: AABB, axis-resolved, non-swept; fast movers may need sub-stepping.
 - Coordinate system: origin top-left, +x right, +y down; rotations in degrees, clockwise positive.
 - Asset paths: resolved relative to the main script directory.
+
+# Aseprite roadmap
+- Current: parses 32-bit RGBA cels, flattens visible layers, uses tags for anims (direction handled), supports hot reload of `.ase/.aseprite`.
+- Missing: slices/anchors/hitboxes, layer metadata and link cels, non-RGBA formats, offline/baked exporter to packed sheet+meta, reload status surfaced to scripts.
