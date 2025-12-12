@@ -119,6 +119,8 @@ struct BindingsState {
         int sheetId = -1;
         int frameW = 0;
         int frameH = 0;
+        std::string path;
+        std::filesystem::file_time_type lastWriteTime;
         std::unordered_map<std::string, std::vector<int>> tagFrames;
         std::unordered_map<std::string, double> tagFps;
     };

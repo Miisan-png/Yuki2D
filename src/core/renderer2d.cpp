@@ -485,6 +485,42 @@ int Renderer2D::createSpriteSheetFromFrames(int frameW, int frameH, const std::v
     return (int)spriteSheets.size() - 1;
 }
 
+bool Renderer2D::updateSpriteSheetFromFrames(int sheetId, int frameW, int frameH, const std::vector<std::vector<unsigned char>>& frames) {
+    if (sheetId < 0 || sheetId >= (int)spriteSheets.size()) return false;
+    if (frameW <= 0 || frameH <= 0 || frames.empty()) return false;
+    int cols = (int)frames.size();
+    int texW = frameW * cols;
+    int texH = frameH;
+    std::vector<unsigned char> pixels((size_t)texW * (size_t)texH * 4, 0);
+    for (size_t i = 0; i < frames.size(); ++i) {
+        const auto& f = frames[i];
+        if (f.size() < (size_t)frameW * (size_t)frameH * 4) continue;
+        int xoff = (int)i * frameW;
+        for (int y = 0; y < frameH; ++y) {
+            for (int x = 0; x < frameW; ++x) {
+                size_t src = ((size_t)y * frameW + x) * 4;
+                size_t dst = ((size_t)y * texW + (xoff + x)) * 4;
+                pixels[dst + 0] = f[src + 0];
+                pixels[dst + 1] = f[src + 1];
+                pixels[dst + 2] = f[src + 2];
+                pixels[dst + 3] = f[src + 3];
+            }
+        }
+    }
+    auto& sheet = spriteSheets[sheetId];
+    glBindTexture(GL_TEXTURE_2D, sheet.texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texW, texH, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    sheet.texW = texW;
+    sheet.texH = texH;
+    sheet.frameW = frameW;
+    sheet.frameH = frameH;
+    sheet.cols = cols;
+    sheet.rows = 1;
+    return true;
+}
+
 void Renderer2D::drawSpriteFrame(int sheetId, int frame, float x, float y, float rotationDeg, float scaleX, float scaleY, bool flipX, bool flipY, float originX, float originY, float alpha) {
     if (sheetId < 0 || sheetId >= (int)spriteSheets.size()) return;
     RenderCmd cmd{};

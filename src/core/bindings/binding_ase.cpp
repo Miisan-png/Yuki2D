@@ -18,20 +18,10 @@ std::filesystem::path resolvePath(const std::string& rel) {
     if (!st.assetBase.empty()) return std::filesystem::path(st.assetBase) / p;
     return p;
 }
-}
 
-Value apiAseLoad(const std::vector<Value>& args) {
-    if (args.empty() || !st.renderer) return Value::number(-1);
-    auto p = resolvePath(args[0].toString());
-    AseData data;
-    if (!loadAsepriteFile(p.string(), data)) return Value::number(-1);
-    int sheetId = st.renderer->createSpriteSheetFromFrames(data.width, data.height, data.frames);
-    if (sheetId < 0) return Value::number(-1);
-    BindingsState::AseAsset asset;
-    asset.id = st.aseCounter++;
-    asset.sheetId = sheetId;
-    asset.frameW = data.width;
-    asset.frameH = data.height;
+void buildTags(const AseData& data, BindingsState::AseAsset& asset) {
+    asset.tagFrames.clear();
+    asset.tagFps.clear();
     for (const auto& tag : data.tags) {
         std::vector<int> frames;
         for (int fi = tag.from; fi <= tag.to && fi < (int)data.frames.size(); ++fi) {
@@ -63,6 +53,25 @@ Value apiAseLoad(const std::vector<Value>& args) {
         asset.tagFrames[tag.name] = frames;
         asset.tagFps[tag.name] = fps;
     }
+}
+}
+
+Value apiAseLoad(const std::vector<Value>& args) {
+    if (args.empty() || !st.renderer) return Value::number(-1);
+    auto p = resolvePath(args[0].toString());
+    AseData data;
+    if (!loadAsepriteFile(p.string(), data)) return Value::number(-1);
+    int sheetId = st.renderer->createSpriteSheetFromFrames(data.width, data.height, data.frames);
+    if (sheetId < 0) return Value::number(-1);
+    BindingsState::AseAsset asset;
+    asset.id = st.aseCounter++;
+    asset.sheetId = sheetId;
+    asset.frameW = data.width;
+    asset.frameH = data.height;
+    asset.path = p.string();
+    std::error_code ec;
+    asset.lastWriteTime = std::filesystem::last_write_time(p, ec);
+    buildTags(data, asset);
     st.aseAssets[asset.id] = asset;
     logInfo("ase_load: " + p.string() + " tags=" + std::to_string(asset.tagFrames.size()));
     return Value::number(asset.id);
