@@ -67,7 +67,6 @@ void YukiRunner::run(Window& window) {
             debugToggled = !debugToggled;
             renderer.setDebugEnabled(debugToggled);
         }
-        EngineBindings::update(dt);
         window.clear();
         if (updateFn.isFunction()) {
             std::vector<Value> args;
@@ -77,6 +76,7 @@ void YukiRunner::run(Window& window) {
         if (interpreter.hasRuntimeErrors()) {
             break;
         }
+        EngineBindings::update(dt);
         int fbW = 0;
         int fbH = 0;
         window.getFramebufferSize(fbW, fbH);
