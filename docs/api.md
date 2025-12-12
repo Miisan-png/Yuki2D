@@ -29,6 +29,11 @@ All functions are available globally after engine init. Booleans accept `true`/`
 - `anim_set_alpha(anim_id, alpha)`
 - `anim_draw(anim_id)`
 
+## Aseprite
+- `ase_load(path)` -> aseId (loads `.ase/.aseprite` or baked output, builds a sprite sheet)
+- `ase_anim(ase_id, tag_name, loop=true, fps_override=-1)` -> animId (frames from tag; uses tag direction and timing unless overridden)
+- `ase_tags(ase_id)` -> array of tag names
+
 ## Collision
 - `collider_create(x, y, w, h, tag, solid=true)` -> colId
 - `collider_set_position(id, x, y)`

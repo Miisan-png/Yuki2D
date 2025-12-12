@@ -43,3 +43,17 @@ fn move_player(dx, dy) {
 draw_text(font, "Hello", 20, 20, "scale", 2, "color", 1, 0.9, 0.6, 1);
 draw_text(font, "Wrapped body copy across a set width.", 20, 60, "max_width", 200, "line_height", 14);
 ```
+
+## Aseprite tag-driven anim
+```ys
+var ase = ase_load("test.aseprite");
+var idle = ase_anim(ase, "idle");
+var walk = ase_anim(ase, "walk");
+fn update(dt) {
+    var moving = is_key_down("a") or is_key_down("d") or is_key_down("w") or is_key_down("s");
+    var active = moving ? walk : idle;
+    anim_play(active, false);
+    anim_set_position(active, 160, 120);
+    anim_draw(active);
+}
+```

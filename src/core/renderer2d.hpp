@@ -71,6 +71,7 @@ public:
     void drawSprite(int id, float x, float y);
     void drawSpriteEx(int id, float x, float y, float rotationDeg, float scaleX, float scaleY, bool flipX, bool flipY, float originX = -1.0f, float originY = -1.0f, float alpha = 1.0f);
     int loadSpriteSheet(const std::string& path, int frameW, int frameH);
+    int createSpriteSheetFromFrames(int frameW, int frameH, const std::vector<std::vector<unsigned char>>& frames);
     void drawSpriteFrame(int sheetId, int frame, float x, float y, float rotationDeg, float scaleX, float scaleY, bool flipX, bool flipY, float originX = -1.0f, float originY = -1.0f, float alpha = 1.0f);
     int loadFont(const std::string& imagePath, const std::string& metricsPath);
     void drawText(int fontId, const std::string& text, float x, float y);

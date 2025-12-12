@@ -113,6 +113,17 @@ struct BindingsState {
     int tweenCounter = 1;
     int sequenceCounter = 1;
     int parallelCounter = 1;
+
+    struct AseAsset {
+        int id = -1;
+        int sheetId = -1;
+        int frameW = 0;
+        int frameH = 0;
+        std::unordered_map<std::string, std::vector<int>> tagFrames;
+        std::unordered_map<std::string, double> tagFps;
+    };
+    std::unordered_map<int, AseAsset> aseAssets;
+    int aseCounter = 1;
 };
 
 BindingsState& bindingsState();

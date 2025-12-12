@@ -8,6 +8,11 @@ var npc_sheet;
 var half_w = 640;
 var half_h = 360;
 var dbg_timer = 0;
+var ase_id;
+var ase_idle;
+var ase_walk;
+var ase_x = 520;
+var ase_y = 220;
 
 fn init() {
     print("Loading font");
@@ -31,6 +36,17 @@ fn init() {
     npc_sheet = load_sprite_sheet("asset_pack/characters/player.png", 48, 48);
     wall_id = collider_create(300, 220, 120, 60, "wall", true);
     set_clear_color(0.08, 0.09, 0.12);
+    ase_id = ase_load("test.aseprite");
+    if (ase_id >= 0) {
+        var tags = ase_tags(ase_id);
+        print("ase tags:", array_len(tags));
+        ase_idle = ase_anim(ase_id, "idle");
+        ase_walk = ase_anim(ase_id, "walk");
+        anim_set_scale(ase_idle, 2, 2);
+        anim_set_scale(ase_walk, 2, 2);
+    } else {
+        print("ase load failed");
+    }
     print(msg);
 }
 
@@ -46,9 +62,15 @@ fn update(dt) {
         draw_sprite_frame(npc_sheet, 6, 200, 260, 0, 2, 2, true, false, -1, -1, 1);
         draw_sprite_frame(npc_sheet, 12, 320, 180, 0, 2, 2, false, false, -1, -1, 1);
     }
+    var ase_anim_active = ase_idle;
+    if (is_key_down("z")) ase_anim_active = ase_walk;
+    if (ase_anim_active >= 0) {
+        anim_set_position(ase_anim_active, ase_x, ase_y);
+        anim_play(ase_anim_active, false);
+        anim_draw(ase_anim_active);
+    }
     if (dbg_timer >= 0.25) {
         dbg_timer = 0;
-        print("player:", cx, cy);
     }
     var hp = player_get_hp();
     draw_text(font, "Yuki text demo", 16, 20, "scale", 2, "color", 1, 1, 0.85, 1);

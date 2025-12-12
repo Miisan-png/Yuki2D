@@ -20,6 +20,8 @@ add_executable(yuki2d
     src/core/bindings/binding_input.cpp
     src/core/bindings/binding_tween.cpp
     src/core/bindings/binding_math.cpp
+    src/core/bindings/binding_ase.cpp
+    src/core/aseprite_loader.cpp
     src/core/bindings/core_api.cpp
     src/core/bindings/collision_api.cpp
     src/core/bindings/tween_api.cpp

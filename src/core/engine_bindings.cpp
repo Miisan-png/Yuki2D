@@ -54,5 +54,6 @@ void EngineBindings::registerBuiltins(std::unordered_map<std::string, NativeFn>&
     registerInputBuiltins(builtins);
     registerTweenBuiltins(builtins);
     registerMathBuiltins(builtins);
+    registerAseBuiltins(builtins);
 }
 } // namespace yuki
