@@ -27,6 +27,7 @@ public:
     Value callFunction(const Value& fn, const std::vector<Value>& args);
     Value exec(const std::vector<std::unique_ptr<Stmt>>& statements);
     void clearRuntimeErrors();
+    void runtimeError(const std::string& message);
     void retainModule(std::vector<std::unique_ptr<Stmt>>&& statements);
     bool hasRuntimeErrors() const { return !runtimeErrors.empty(); }
     const std::vector<std::string>& getRuntimeErrors() const { return runtimeErrors; }
@@ -46,6 +47,7 @@ private:
     std::vector<std::string> runtimeErrors;
     std::vector<std::string> callStack;
     std::vector<std::vector<std::unique_ptr<Stmt>>> ownedModules;
+    int functionDepth = 0;
 };
 
 }

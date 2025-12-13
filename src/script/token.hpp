@@ -23,7 +23,10 @@ class Tokenizer {
 public:
     Tokenizer(const std::string& source);
     std::vector<Token> scanTokens();
+    bool hadError() const { return !errors.empty(); }
+    const std::vector<std::string>& getErrors() const { return errors; }
 private:
     std::string source;
+    std::vector<std::string> errors;
 };
 }

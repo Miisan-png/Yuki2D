@@ -1,0 +1,8 @@
+fn init() {
+    print("before");
+    assert(false, "boom");
+    print("after");
+}
+
+fn update(dt) {
+}

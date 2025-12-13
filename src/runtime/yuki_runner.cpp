@@ -26,6 +26,12 @@ void YukiRunner::run(Window& window) {
     std::string content = loader.load();
     Tokenizer tokenizer(content);
     std::vector<Token> tokens = tokenizer.scanTokens();
+    if (tokenizer.hadError()) {
+        for (const auto& err : tokenizer.getErrors()) {
+            logError(err);
+        }
+        return;
+    }
     Parser parser(tokens);
     std::vector<std::unique_ptr<Stmt>> statements = parser.parse();
     if (parser.hadError()) {

@@ -1,0 +1,9 @@
+fn init() {
+    print("line1\nline2");
+    print("tab\tend");
+    print("quote: \" ok");
+    print("slash: \\ ok");
+}
+
+fn update(dt) {
+}

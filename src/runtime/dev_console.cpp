@@ -69,6 +69,10 @@ void DevConsole::submit() {
     historyIndex = -1;
     Tokenizer tokenizer(src);
     std::vector<Token> tokens = tokenizer.scanTokens();
+    if (tokenizer.hadError()) {
+        for (const auto& e : tokenizer.getErrors()) appendLine(e);
+        return;
+    }
     Parser parser(tokens);
     std::vector<std::unique_ptr<Stmt>> statements = parser.parse();
     if (parser.hadError()) {

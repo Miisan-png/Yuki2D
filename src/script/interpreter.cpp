@@ -64,6 +64,7 @@ Value Interpreter::callFunction(FunctionValue* fn, const std::vector<Value>& arg
     }
     std::string frameName = fn->name.empty() ? "<anon>" : fn->name;
     callStack.push_back(frameName);
+    functionDepth++;
 
     std::shared_ptr<Environment> closure = std::make_shared<Environment>(fn->closure);
     for (size_t i = 0; i < fn->parameters.size(); ++i) {
@@ -89,6 +90,7 @@ Value Interpreter::callFunction(FunctionValue* fn, const std::vector<Value>& arg
     }
     
     env = previous;
+    functionDepth--;
     callStack.pop_back();
     return ret;
 }
@@ -230,6 +232,10 @@ Value Interpreter::evalStmt(const Stmt* stmt) {
             if (rs->value) {
                 val = evalExpr(rs->value.get());
             }
+            if (functionDepth <= 0) {
+                reportRuntimeError("Return used outside of a function");
+                return Value::nilVal();
+            }
             throw ReturnSignal{val};
         }
         case StmtKind::If: {
@@ -285,6 +291,10 @@ void Interpreter::retainModule(std::vector<std::unique_ptr<Stmt>>&& statements) 
 
 void Interpreter::clearRuntimeErrors() {
     runtimeErrors.clear();
+}
+
+void Interpreter::runtimeError(const std::string& message) {
+    reportRuntimeError(message);
 }
 
 void Interpreter::reportRuntimeError(const std::string& message) {

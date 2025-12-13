@@ -22,6 +22,12 @@ int headlessRun(const std::string& scriptPath, bool execute) {
     }
     yuki::Tokenizer tokenizer(content);
     std::vector<yuki::Token> tokens = tokenizer.scanTokens();
+    if (tokenizer.hadError()) {
+        for (const auto& err : tokenizer.getErrors()) {
+            yuki::logError(err);
+        }
+        return 1;
+    }
     yuki::Parser parser(tokens);
     std::vector<std::unique_ptr<yuki::Stmt>> statements = parser.parse();
     if (parser.hadError()) {

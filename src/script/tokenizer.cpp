@@ -77,11 +77,24 @@ std::vector<Token> Tokenizer::scanTokens() {
                 std::string val;
                 while (current < source.size() && source[current] != '"') {
                     if (source[current] == '\n') { line++; col = 1; }
+                    if (source[current] == '\\' && current + 1 < source.size()) {
+                        char esc = source[current + 1];
+                        if (esc == 'n') { val.push_back('\n'); current += 2; col += 2; continue; }
+                        if (esc == 't') { val.push_back('\t'); current += 2; col += 2; continue; }
+                        if (esc == '"') { val.push_back('\"'); current += 2; col += 2; continue; }
+                        if (esc == '\\') { val.push_back('\\'); current += 2; col += 2; continue; }
+                    }
                     val += source[current++];
                     col++;
                 }
-                if (current < source.size()) { current++; col++; }
-                tokens.push_back({TokenType::String, val, startLine, startCol});
+                if (current >= source.size()) {
+                    errors.push_back("[Tokenizer] line " + std::to_string(startLine) + ", col " + std::to_string(startCol) + ": Unterminated string");
+                    tokens.push_back({TokenType::String, val, startLine, startCol});
+                } else {
+                    current++;
+                    col++;
+                    tokens.push_back({TokenType::String, val, startLine, startCol});
+                }
                 break;
             }
             case '[': tokens.push_back({TokenType::LeftBracket, "[", startLine, startCol}); break;
@@ -120,6 +133,8 @@ std::vector<Token> Tokenizer::scanTokens() {
                     else if (val == "while") tokens.push_back({TokenType::Identifier, "while", startLine, startCol});
                     else if (val == "return") tokens.push_back({TokenType::Identifier, "return", startLine, startCol});
                     else tokens.push_back({TokenType::Identifier, val, startLine, startCol});
+                } else {
+                    errors.push_back("[Tokenizer] line " + std::to_string(startLine) + ", col " + std::to_string(startCol) + ": Unexpected character '" + std::string(1, c) + "'");
                 }
                 break;
         }

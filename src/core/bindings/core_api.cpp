@@ -65,6 +65,12 @@ Value apiImport(const std::vector<Value>& args) {
     std::string content = loader.load();
     Tokenizer tokenizer(content);
     std::vector<Token> tokens = tokenizer.scanTokens();
+    if (tokenizer.hadError()) {
+        for (const auto& err : tokenizer.getErrors()) {
+            logError(err);
+        }
+        return Value::nilVal();
+    }
     Parser parser(tokens);
     std::vector<std::unique_ptr<Stmt>> statements = parser.parse();
     if (parser.hadError()) {
@@ -120,5 +126,37 @@ Value apiGetScreenSize(const std::vector<Value>&) {
     m["w"] = Value::number((double)w);
     m["h"] = Value::number((double)h);
     return Value::map(m);
+}
+
+Value apiError(const std::vector<Value>& args) {
+    std::string msg;
+    for (size_t i = 0; i < args.size(); i++) {
+        if (i) msg += " ";
+        msg += args[i].toString();
+    }
+    if (msg.empty()) msg = "error";
+    if (st.interpreter) {
+        st.interpreter->runtimeError(msg);
+    } else {
+        logError(msg);
+    }
+    return Value::nilVal();
+}
+
+Value apiAssert(const std::vector<Value>& args) {
+    bool ok = false;
+    if (args.empty()) ok = false;
+    else {
+        const Value& v = args[0];
+        if (v.isBool()) ok = v.boolVal;
+        else if (v.isNumber()) ok = v.numberVal != 0;
+        else ok = !v.isNil();
+    }
+    if (!ok) {
+        std::string msg = args.size() > 1 ? args[1].toString() : "assert failed";
+        if (st.interpreter) st.interpreter->runtimeError(msg);
+        else logError(msg);
+    }
+    return Value::nilVal();
 }
 } // namespace yuki
