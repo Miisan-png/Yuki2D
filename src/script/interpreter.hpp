@@ -41,6 +41,7 @@ private:
     void reportRuntimeError(const std::string& message);
 
     std::unordered_map<std::string, NativeFn> builtins;
+    std::unordered_map<std::string, Value> builtinValueCache;
     std::vector<FunctionValue*> allocatedFunctions;
     std::vector<std::string> runtimeErrors;
     std::vector<std::string> callStack;

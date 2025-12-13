@@ -17,7 +17,7 @@ var ase_x = 520;
 var ase_y = 220;
 
 fn init() {
-    print("Loading font");
+    engine_log("Loading font");
     greet("Yuki");
     var msg = get_message();
     var arr = array(1, 2, 3);

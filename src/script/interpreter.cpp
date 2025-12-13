@@ -11,6 +11,15 @@ namespace yuki {
 Interpreter::Interpreter() : globals(std::make_shared<Environment>(nullptr)), env(globals) {
     registerScriptBuiltins(builtins);
     EngineBindings::registerBuiltins(builtins);
+    builtinValueCache.reserve(builtins.size());
+    for (const auto& kv : builtins) {
+        FunctionValue* fn = new FunctionValue();
+        fn->isNative = true;
+        fn->name = kv.first;
+        fn->nativeFn = kv.second;
+        allocatedFunctions.push_back(fn);
+        builtinValueCache.emplace(kv.first, Value::function(fn));
+    }
 }
 
 Interpreter::~Interpreter() {
@@ -40,6 +49,9 @@ bool isEqual(const Value& a, const Value& b) {
     if (a.isNumber()) return std::abs(a.numberVal - b.numberVal) < 1e-9;
     if (a.isBool()) return a.boolVal == b.boolVal;
     if (a.isString()) return a.stringVal == b.stringVal;
+    if (a.isFunction()) return a.functionVal == b.functionVal;
+    if (a.isMap()) return a.mapPtr == b.mapPtr;
+    if (a.isArray()) return a.arrayPtr == b.arrayPtr;
     return false;
 }
 
@@ -105,14 +117,8 @@ Value Interpreter::evalExpr(const Expr* expr) {
             const auto* v = static_cast<const VarExpr*>(expr);
             auto val = env->get(v->name);
             if (val.has_value()) return val.value();
-            if (builtins.count(v->name)) {
-                FunctionValue* fn = new FunctionValue();
-                fn->isNative = true;
-                fn->name = v->name;
-                fn->nativeFn = builtins[v->name];
-                allocatedFunctions.push_back(fn);
-                return Value::function(fn);
-            }
+            auto it = builtinValueCache.find(v->name);
+            if (it != builtinValueCache.end()) return it->second;
             reportRuntimeError("Undefined identifier '" + v->name + "'");
             return Value::nilVal();
         }
