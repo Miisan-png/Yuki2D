@@ -1,0 +1,51 @@
+{
+  "keywords": [
+    "fn",
+    "var",
+    "if",
+    "else",
+    "while",
+    "for",
+    "do",
+    "return",
+    "break",
+    "continue",
+    "and",
+    "or",
+    "nil",
+    "true",
+    "false"
+  ],
+  "builtins": [
+    "import",
+    "require",
+    "print",
+    "error",
+    "assert",
+    "typeof",
+    "len",
+    "push",
+    "pop",
+    "array",
+    "map",
+    "time",
+    "random",
+    "sin",
+    "cos",
+    "floor"
+  ],
+  "engineApiPrefixes": [
+    "camera_",
+    "tween_",
+    "ui_",
+    "anim_",
+    "collider_",
+    "ase_",
+    "draw_",
+    "load_",
+    "set_",
+    "is_",
+    "get_"
+  ]
+}
+

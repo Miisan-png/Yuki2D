@@ -21,6 +21,7 @@ var show_modal = false;
 var selected_scene = "menu";
 var show_inspector = true;
 
+
 fn init() {
     set_virtual_resolution(640, 360);
     if (UI != nil) {

@@ -1,0 +1,91 @@
+{
+  "InitUpdate": {
+    "prefix": "initupdate",
+    "body": [
+      "fn init() {",
+      "\t$0",
+      "}",
+      "",
+      "fn update(dt) {",
+      "}"
+    ],
+    "description": "init() + update(dt) template"
+  },
+  "SceneExports": {
+    "prefix": "scene",
+    "body": [
+      "exports = {",
+      "\tenter: fn(prev, ctx) {",
+      "\t\t$0",
+      "\t},",
+      "\tupdate: fn(dt, ctx) {",
+      "\t},",
+      "\tdraw: fn(dt, ctx) {",
+      "\t}",
+      "};"
+    ],
+    "description": "Scene module exports map"
+  },
+  "Require": {
+    "prefix": "req",
+    "body": [
+      "var ${1:name} = require(\"${2:module}.ys\", \"${1:name}\");"
+    ],
+    "description": "require(module, alias)"
+  },
+  "Import": {
+    "prefix": "imp",
+    "body": [
+      "import(\"${1:module}.ys\");"
+    ],
+    "description": "import(module)"
+  },
+  "Function": {
+    "prefix": "fn",
+    "body": [
+      "fn ${1:name}(${2:args}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Function"
+  },
+  "Lambda": {
+    "prefix": "lambda",
+    "body": [
+      "var ${1:f} = fn(${2:args}) {",
+      "\t$0",
+      "};"
+    ],
+    "description": "Anonymous function (lambda)"
+  },
+  "If": {
+    "prefix": "if",
+    "body": [
+      "if (${1:cond}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "if statement"
+  },
+  "IfElse": {
+    "prefix": "ife",
+    "body": [
+      "if (${1:cond}) {",
+      "\t$0",
+      "} else {",
+      "\t",
+      "}"
+    ],
+    "description": "if/else statement"
+  },
+  "While": {
+    "prefix": "while",
+    "body": [
+      "while (${1:cond}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "while loop"
+  }
+}
+

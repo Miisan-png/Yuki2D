@@ -1,0 +1,175 @@
+{
+  "name": "Yuki",
+  "scopeName": "source.yuki",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#mapKeys"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#decls"
+    },
+    {
+      "include": "#builtins"
+    },
+    {
+      "include": "#calls"
+    },
+    {
+      "include": "#members"
+    },
+    {
+      "include": "#operators"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.yuki",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.yuki",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.yuki",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.yuki",
+              "match": "\\\\(n|t|\"|\\\\)"
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.yuki",
+          "match": "(?<![A-Za-z0-9_])(-?(?:0x[0-9A-Fa-f]+|(?:\\d+\\.\\d*|\\d*\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?))(?![A-Za-z0-9_])"
+        }
+      ]
+    },
+    "mapKeys": {
+      "patterns": [
+        {
+          "name": "meta.map.key.yuki",
+          "match": "(?:(?<=\\{)|(?<=,))\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*(?=:)",
+          "captures": {
+            "1": {
+              "name": "variable.other.member.yuki"
+            }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.yuki",
+          "match": "\\b(fn|var|if|else|while|for|do|return|break|continue)\\b"
+        },
+        {
+          "name": "keyword.operator.logical.yuki",
+          "match": "\\b(and|or)\\b"
+        },
+        {
+          "name": "constant.language.yuki",
+          "match": "\\b(nil|true|false)\\b"
+        },
+        {
+          "name": "variable.language.yuki",
+          "match": "\\b(exports)\\b"
+        }
+      ]
+    },
+    "decls": {
+      "patterns": [
+        {
+          "name": "meta.function.yuki",
+          "match": "\\bfn\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.yuki"
+            }
+          }
+        },
+        {
+          "name": "meta.variable.yuki",
+          "match": "\\bvar\\s+([A-Za-z_][A-Za-z0-9_]*)\\b",
+          "captures": {
+            "1": {
+              "name": "variable.other.definition.yuki"
+            }
+          }
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "name": "support.function.yuki",
+          "match": "\\b(import|require|print|error|assert|typeof|len|push|pop|array|map|time|random|sin|cos|floor)\\b"
+        },
+        {
+          "name": "support.function.engine.yuki",
+          "match": "\\b(camera_[A-Za-z0-9_]+|tween_[A-Za-z0-9_]+|ui_[A-Za-z0-9_]+|anim_[A-Za-z0-9_]+|collider_[A-Za-z0-9_]+|ase_[A-Za-z0-9_]+|draw_[A-Za-z0-9_]+|load_[A-Za-z0-9_]+|set_[A-Za-z0-9_]+|is_[A-Za-z0-9_]+|get_[A-Za-z0-9_]+)\\b"
+        }
+      ]
+    },
+    "calls": {
+      "patterns": [
+        {
+          "name": "meta.function-call.yuki",
+          "match": "\\b(?!fn\\b|var\\b|if\\b|else\\b|while\\b|for\\b|do\\b|return\\b|break\\b|continue\\b|and\\b|or\\b|nil\\b|true\\b|false\\b|import\\b|require\\b|print\\b|error\\b|assert\\b|typeof\\b|len\\b|push\\b|pop\\b|array\\b|map\\b|time\\b|random\\b|sin\\b|cos\\b|floor\\b)([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.call.yuki"
+            }
+          }
+        }
+      ]
+    },
+    "members": {
+      "patterns": [
+        {
+          "name": "meta.member-access.yuki",
+          "match": "\\.([A-Za-z_][A-Za-z0-9_]*)\\b",
+          "captures": {
+            "1": {
+              "name": "variable.other.member.yuki"
+            }
+          }
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.yuki",
+          "match": "==|!=|<=|>=|=|\\+|-|\\*|/|%|<|>|\\.|\\?|:|\\||&|!"
+        }
+      ]
+    }
+  }
+}

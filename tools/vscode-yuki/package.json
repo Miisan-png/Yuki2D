@@ -1,0 +1,42 @@
+{
+  "name": "yuki-language",
+  "displayName": "Yuki Language",
+  "description": "Syntax highlighting for Yuki (.ys).",
+  "version": "0.0.2",
+  "publisher": "yuki2d",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "yuki",
+        "aliases": [
+          "Yuki",
+          "yuki"
+        ],
+        "extensions": [
+          ".ys"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "yuki",
+        "path": "./snippets/yuki.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "yuki",
+        "scopeName": "source.yuki",
+        "path": "./syntaxes/yuki.tmLanguage.json"
+      }
+    ]
+  }
+}
