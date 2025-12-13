@@ -1,4 +1,0 @@
-fn update(dt) {
-    if (is_key_down("left"))  engine_log("move left");
-    if (is_key_pressed("space")) engine_log("jump!");
-}

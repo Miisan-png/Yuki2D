@@ -832,7 +832,7 @@ void Renderer2D::setDebugEnabled(bool enabled) {
     debugEnabled = enabled;
 }
 
-void Renderer2D::flush(int screenWidth, int screenHeight) {
+void Renderer2D::flush(int screenWidth, int screenHeight, bool useCamera) {
     bool hasRender = !buffer.empty();
     bool hasDebug = debugEnabled && !debugBuffer.empty();
     if (!hasRender && !hasDebug) {
@@ -880,31 +880,35 @@ void Renderer2D::flush(int screenWidth, int screenHeight) {
         batch.clear();
     };
 
-    float renderX = cameraX + cameraShakeOffsetX;
-    float renderY = cameraY + cameraShakeOffsetY;
-    if (cameraBoundsOn) {
-        float halfViewW = ((float)virtualW * 0.5f) / cameraZoom;
-        float halfViewH = ((float)virtualH * 0.5f) / cameraZoom;
-        float minX = cameraBoundsX + halfViewW;
-        float maxX = cameraBoundsX + cameraBoundsW - halfViewW;
-        float minY = cameraBoundsY + halfViewH;
-        float maxY = cameraBoundsY + cameraBoundsH - halfViewH;
-        if (minX > maxX) renderX = cameraBoundsX + cameraBoundsW * 0.5f;
-        else renderX = std::max(minX, std::min(renderX, maxX));
-        if (minY > maxY) renderY = cameraBoundsY + cameraBoundsH * 0.5f;
-        else renderY = std::max(minY, std::min(renderY, maxY));
+    if (useCamera) {
+        float renderX = cameraX + cameraShakeOffsetX;
+        float renderY = cameraY + cameraShakeOffsetY;
+        if (cameraBoundsOn) {
+            float halfViewW = ((float)virtualW * 0.5f) / cameraZoom;
+            float halfViewH = ((float)virtualH * 0.5f) / cameraZoom;
+            float minX = cameraBoundsX + halfViewW;
+            float maxX = cameraBoundsX + cameraBoundsW - halfViewW;
+            float minY = cameraBoundsY + halfViewH;
+            float maxY = cameraBoundsY + cameraBoundsH - halfViewH;
+            if (minX > maxX) renderX = cameraBoundsX + cameraBoundsW * 0.5f;
+            else renderX = std::max(minX, std::min(renderX, maxX));
+            if (minY > maxY) renderY = cameraBoundsY + cameraBoundsH * 0.5f;
+            else renderY = std::max(minY, std::min(renderY, maxY));
+        }
+        if (cameraPixelSnap) {
+            float step = 1.0f / cameraZoom;
+            renderX = std::floor(renderX / step + 0.5f) * step;
+            renderY = std::floor(renderY / step + 0.5f) * step;
+        }
+        Mat4 view = mul(translate((float)virtualW * 0.5f, (float)virtualH * 0.5f, 0.0f),
+                        mul(rotateZ(cameraRotationDeg),
+                            mul(scale(cameraZoom, cameraZoom, 1.0f),
+                                translate(-renderX, -renderY, 0.0f))));
+        Mat4 mvp = mul(proj, view);
+        glUniformMatrix4fv(uniformMvp, 1, GL_FALSE, mvp.m);
+    } else {
+        glUniformMatrix4fv(uniformMvp, 1, GL_FALSE, proj.m);
     }
-    if (cameraPixelSnap) {
-        float step = 1.0f / cameraZoom;
-        renderX = std::floor(renderX / step + 0.5f) * step;
-        renderY = std::floor(renderY / step + 0.5f) * step;
-    }
-    Mat4 view = mul(translate((float)virtualW * 0.5f, (float)virtualH * 0.5f, 0.0f),
-                    mul(rotateZ(cameraRotationDeg),
-                        mul(scale(cameraZoom, cameraZoom, 1.0f),
-                            translate(-renderX, -renderY, 0.0f))));
-    Mat4 mvp = mul(proj, view);
-    glUniformMatrix4fv(uniformMvp, 1, GL_FALSE, mvp.m);
 
     if (hasRender) {
         for (const auto& cmd : buffer) {

@@ -112,7 +112,7 @@ int headlessSimulate(const std::string& scriptPath, int steps, double dt) {
 } // namespace
 
 int main(int argc, char** argv) {
-    std::string scriptPath = "scripts/example_main.ys";
+    std::string scriptPath = "demo/main.ys";
     if (argc > 1 && std::string(argv[1]) == "--check") {
         if (argc < 3) {
             yuki::logError("Usage: yuki2d --check <script.ys>");

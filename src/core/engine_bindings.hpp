@@ -13,6 +13,7 @@ public:
     static void init(Window* window, Renderer2D* renderer, Interpreter* interpreter);
     static void update(double dt);
     static void setAssetBase(const std::string& base);
+    static std::string resolveAssetPath(const std::string& rel);
     static void registerBuiltins(std::unordered_map<std::string, NativeFn>& builtins);
 };
 } // namespace yuki

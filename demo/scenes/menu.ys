@@ -1,0 +1,26 @@
+exports = {
+    enter: fn(prev, ctx) {
+        if (ctx.camera != nil) {
+            ctx.camera.follow(false);
+            ctx.camera.set(320, 180);
+            ctx.camera.zoom(1.0);
+            ctx.camera.rot(0);
+            ctx.camera.pixel_snap(true);
+            ctx.camera.deadzone(0, 0);
+            ctx.camera.clear_bounds();
+        }
+    },
+    update: fn(dt, ctx) {
+        if (ctx.input != nil and ctx.input.pressed("enter")) {
+            ctx.scene.set("scenes/game.ys");
+        }
+    },
+    draw: fn(dt, ctx) {
+        set_clear_color(0.05, 0.06, 0.08);
+        if (ctx.font != nil) {
+            draw_text(ctx.font, "Yuki2D Demo", 24, 28, "scale", 3);
+            draw_text(ctx.font, "Enter: Play", 24, 80, "scale", 2);
+            draw_text(ctx.font, "Esc: Pause in-game", 24, 108, "scale", 2);
+        }
+    }
+};

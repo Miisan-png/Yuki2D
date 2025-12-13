@@ -85,6 +85,13 @@ void EngineBindings::setAssetBase(const std::string& base) {
     }
 }
 
+std::string EngineBindings::resolveAssetPath(const std::string& rel) {
+    std::filesystem::path p(rel);
+    if (p.is_absolute()) return p.string();
+    if (!st.assetBase.empty()) return (std::filesystem::path(st.assetBase) / p).string();
+    return p.string();
+}
+
 void EngineBindings::update(double dt) {
     hotReloadAse(dt);
     if (st.renderer) st.renderer->cameraUpdate(dt);

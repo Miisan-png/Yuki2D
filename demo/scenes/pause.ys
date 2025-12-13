@@ -1,0 +1,24 @@
+exports = {
+    enter: fn(prev, ctx) {
+        if (ctx.camera != nil) {
+            ctx.camera.follow(false);
+            ctx.camera.set(320, 180);
+            ctx.camera.zoom(1.0);
+            ctx.camera.rot(0);
+            ctx.camera.pixel_snap(true);
+            ctx.camera.deadzone(0, 0);
+        }
+    },
+    update: fn(dt, ctx) {
+        if (ctx.input != nil and (ctx.input.pressed("esc") or ctx.input.pressed("enter"))) {
+            ctx.scene.pop();
+        }
+    },
+    draw: fn(dt, ctx) {
+        draw_rect(-10000, -10000, 20000, 20000, 0.0, 0.0, 0.0);
+        if (ctx.font != nil) {
+            draw_text(ctx.font, "PAUSED", 24, 24, "scale", 3, "color", 1, 1, 1, 1);
+            draw_text(ctx.font, "Enter/Esc: resume", 24, 72, "scale", 2, "color", 1, 1, 1, 1);
+        }
+    }
+};

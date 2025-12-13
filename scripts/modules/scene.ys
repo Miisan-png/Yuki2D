@@ -1,0 +1,79 @@
+var Scene = {};
+
+Scene.create = fn(ctx) {
+    var self = {};
+    self.ctx = ctx;
+    self.stack = [];
+    self.current = nil;
+
+    fn call0(sc, name) {
+        var f = sc[name];
+        if (f != nil) f();
+    }
+    fn call2(sc, name, a, b) {
+        var f = sc[name];
+        if (f != nil) f(a, b);
+    }
+
+    self.load = fn(path) {
+        var sc = require(path);
+        if (sc == nil) error("scene load failed: " + path);
+        return { path: path, mod: sc };
+    };
+
+    self.set = fn(path) {
+        var prev = self.current;
+        if (prev != nil) {
+            call2(prev.mod, "exit", path, self.ctx);
+        }
+        self.stack = [];
+        self.current = self.load(path);
+        call2(self.current.mod, "enter", prev, self.ctx);
+    };
+
+    self.push = fn(path) {
+        if (self.current != nil) {
+            push(self.stack, self.current);
+            call2(self.current.mod, "pause", path, self.ctx);
+        }
+        var prev = self.current;
+        self.current = self.load(path);
+        call2(self.current.mod, "enter", prev, self.ctx);
+    };
+
+    self.pop = fn() {
+        if (len(self.stack) == 0) return;
+        var prev = self.current;
+        call2(prev.mod, "exit", nil, self.ctx);
+        self.current = pop(self.stack);
+        call2(self.current.mod, "resume", prev, self.ctx);
+    };
+
+    self.update = fn(dt) {
+        if (self.current == nil) return;
+        var u = self.current.mod.update;
+        if (u != nil) u(dt, self.ctx);
+    };
+
+    self.draw = fn(dt) {
+        var i = 0;
+        while (i < len(self.stack)) {
+            var s = self.stack[i].mod;
+            var d = s.draw;
+            if (d != nil) d(dt, self.ctx);
+            i = i + 1;
+        }
+        if (self.current == nil) return;
+        var d2 = self.current.mod.draw;
+        if (d2 != nil) d2(dt, self.ctx);
+    };
+
+    self.tick = fn(dt) {
+        self.update(dt);
+        self.draw(dt);
+    };
+
+    return self;
+};
+
+exports = Scene;

@@ -85,8 +85,8 @@ void YukiRunner::run(Window& window) {
 
         renderer.flush(fbW, fbH);
         if (console.isActive()) {
-            console.drawOverlay(fbW, fbH);
-            renderer.flush(fbW, fbH);
+            console.drawOverlay(renderer.getVirtualWidth(), renderer.getVirtualHeight());
+            renderer.flush(fbW, fbH, false);
         }
         window.swapBuffers();
         window.pollEvents();

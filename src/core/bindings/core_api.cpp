@@ -22,6 +22,12 @@ Value importInternal(const std::vector<Value>& args, bool injectGlobals) {
     std::vector<std::filesystem::path> candidates;
     if (p.is_absolute()) candidates.push_back(p);
     else {
+        if (st.interpreter && st.interpreter->env) {
+            auto dirVal = st.interpreter->env->get("__module_dir");
+            if (dirVal.has_value() && dirVal.value().isString()) {
+                candidates.push_back(std::filesystem::path(dirVal.value().stringVal) / p);
+            }
+        }
         if (!st.moduleDirStack.empty()) candidates.push_back(st.moduleDirStack.back() / p);
         for (const auto& base : st.importPaths) candidates.push_back(base / p);
         candidates.push_back(p);
@@ -75,6 +81,7 @@ Value importInternal(const std::vector<Value>& args, bool injectGlobals) {
     std::shared_ptr<Environment> previousEnv = st.interpreter->env;
     std::shared_ptr<Environment> moduleEnv = std::make_shared<Environment>(st.interpreter->globals);
     st.interpreter->env = moduleEnv;
+    moduleEnv->define("__module_dir", Value::string(canon.parent_path().string()));
     st.moduleDirStack.push_back(canon.parent_path());
     st.interpreter->exec(statements);
     if (st.interpreter->hasRuntimeErrors()) {

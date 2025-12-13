@@ -5,6 +5,7 @@
 #include "../script/parser.hpp"
 #include "../script/ast.hpp"
 #include "../script/interpreter.hpp"
+#include "../core/engine_bindings.hpp"
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <memory>
@@ -113,7 +114,9 @@ void DevConsole::submit() {
 int DevConsole::ensureFont() {
     if (fontId >= 0) return fontId;
     if (!renderer) return -1;
-    fontId = renderer->loadFont("../assets/fonts/monogram_bitmap.png", "../assets/fonts/monogram_bitmap.json");
+    auto img = EngineBindings::resolveAssetPath("../assets/fonts/monogram_bitmap.png");
+    auto metrics = EngineBindings::resolveAssetPath("../assets/fonts/monogram_bitmap.json");
+    fontId = renderer->loadFont(img, metrics);
     return fontId;
 }
 void DevConsole::moveCursor(int delta) {
@@ -173,7 +176,7 @@ void DevConsole::scroll(int delta) {
     if (scrollOffset > maxOffset) scrollOffset = maxOffset;
 }
 void DevConsole::updateInput() {
-    if (isKeyPressed(GLFW_KEY_GRAVE_ACCENT)) {
+    if (isKeyPressed(GLFW_KEY_GRAVE_ACCENT) || isKeyPressed(GLFW_KEY_F1)) {
         toggle();
         return;
     }

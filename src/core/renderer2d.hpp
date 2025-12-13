@@ -137,7 +137,7 @@ public:
     void setDebugEnabled(bool enabled);
     bool isDebugEnabled() const { return debugEnabled; }
 
-    void flush(int screenWidth, int screenHeight);
+    void flush(int screenWidth, int screenHeight, bool useCamera = true);
 
 private:
     bool initGraphics();
