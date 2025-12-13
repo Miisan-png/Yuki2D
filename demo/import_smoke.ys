@@ -1,0 +1,21 @@
+fn init() {
+    print("=== import smoke ===");
+
+    var util = import("util_module.ys", "util");
+    print("typeof(util):", typeof(util));
+    print("util has greet:", map_has(util, "greet"));
+    print("util has get_message:", map_has(util, "get_message"));
+    var msg_fn = map_get(util, "get_message");
+    print("message:", msg_fn());
+
+    var player = import("player.ys", "player");
+    print("typeof(player):", typeof(player));
+    print("player has get_hp:", map_has(player, "get_hp"));
+    var get_hp = map_get(player, "get_hp");
+    print("player hp:", get_hp());
+
+    print("=== done ===");
+}
+
+fn update(dt) {
+}

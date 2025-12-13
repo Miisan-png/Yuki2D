@@ -9,6 +9,7 @@
 #include "../../script/interpreter.hpp"
 #include <GLFW/glfw3.h>
 #include <filesystem>
+#include <memory>
 
 namespace yuki {
 namespace {
@@ -49,14 +50,15 @@ Value apiImport(const std::vector<Value>& args) {
     std::string key = canon.string();
     std::optional<std::string> alias;
     if (args.size() > 1 && args[1].isString()) alias = args[1].toString();
-    if (st.loadedModules.count(key)) {
-        if (alias) {
-            auto envVal = st.interpreter->globals->get(*alias);
-            if (envVal.has_value()) return envVal.value();
+    auto cached = st.moduleExports.find(key);
+    if (cached != st.moduleExports.end()) {
+        if (alias) st.interpreter->globals->define(*alias, cached->second);
+        else if (cached->second.isMap() && cached->second.mapPtr) {
+            for (const auto& kv : *cached->second.mapPtr) {
+                st.interpreter->globals->define(kv.first, kv.second);
+            }
         }
-        auto exports = st.interpreter->globals->get("exports");
-        if (exports.has_value()) return exports.value();
-        return Value::nilVal();
+        return cached->second;
     }
     logInfo("Importing " + p.string());
     ScriptLoader loader(canon.string());
@@ -72,8 +74,12 @@ Value apiImport(const std::vector<Value>& args) {
         return Value::nilVal();
     }
     logInfo("Executing module " + p.string());
+    std::shared_ptr<Environment> previousEnv = st.interpreter->env;
+    std::shared_ptr<Environment> moduleEnv = std::make_shared<Environment>(st.interpreter->globals);
+    st.interpreter->env = moduleEnv;
     st.interpreter->exec(statements);
     if (st.interpreter->hasRuntimeErrors()) {
+        st.interpreter->env = previousEnv;
         for (const auto& err : st.interpreter->getRuntimeErrors()) {
             logError(err);
         }
@@ -81,13 +87,21 @@ Value apiImport(const std::vector<Value>& args) {
     }
     st.interpreter->retainModule(std::move(statements));
     st.loadedModules.insert(key);
+    Value exportsVal = Value::nilVal();
+    auto exports = moduleEnv->get("exports");
+    if (exports.has_value()) exportsVal = exports.value();
+    st.moduleExports[key] = exportsVal;
+    st.interpreter->env = previousEnv;
     if (alias) {
-        auto envVal = st.interpreter->globals->get(*alias);
-        if (envVal.has_value()) return envVal.value();
+        st.interpreter->globals->define(*alias, exportsVal);
+        return exportsVal;
     }
-    auto exports = st.interpreter->globals->get("exports");
-    if (exports.has_value()) return exports.value();
-    return Value::nilVal();
+    if (exportsVal.isMap() && exportsVal.mapPtr) {
+        for (const auto& kv : *exportsVal.mapPtr) {
+            st.interpreter->globals->define(kv.first, kv.second);
+        }
+    }
+    return exportsVal;
 }
 Value apiTime(const std::vector<Value>&) {
     return Value::number(glfwGetTime());
