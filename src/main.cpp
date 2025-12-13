@@ -40,7 +40,7 @@ int headlessRun(const std::string& scriptPath, bool execute) {
     yuki::Interpreter interpreter;
     yuki::EngineBindings::init(nullptr, nullptr, &interpreter);
     std::filesystem::path scriptDir = std::filesystem::path(scriptPath).parent_path();
-    yuki::EngineBindings::setAssetBase(scriptDir.string());
+    yuki::EngineBindings::setAssetBase(std::filesystem::absolute(scriptDir).lexically_normal().string());
     interpreter.exec(statements);
     interpreter.retainModule(std::move(statements));
     if (interpreter.hasRuntimeErrors()) return 1;
@@ -80,7 +80,7 @@ int headlessSimulate(const std::string& scriptPath, int steps, double dt) {
     yuki::Interpreter interpreter;
     yuki::EngineBindings::init(nullptr, nullptr, &interpreter);
     std::filesystem::path scriptDir = std::filesystem::path(scriptPath).parent_path();
-    yuki::EngineBindings::setAssetBase(scriptDir.string());
+    yuki::EngineBindings::setAssetBase(std::filesystem::absolute(scriptDir).lexically_normal().string());
     interpreter.exec(statements);
     interpreter.retainModule(std::move(statements));
     if (interpreter.hasRuntimeErrors()) return 1;
@@ -113,6 +113,7 @@ int headlessSimulate(const std::string& scriptPath, int steps, double dt) {
 
 int main(int argc, char** argv) {
     std::string scriptPath = "demo/main.ys";
+    bool watch = false;
     if (argc > 1 && std::string(argv[1]) == "--check") {
         if (argc < 3) {
             yuki::logError("Usage: yuki2d --check <script.ys>");
@@ -137,7 +138,10 @@ int main(int argc, char** argv) {
         if (argc >= 5) dt = std::stod(argv[4]);
         return headlessSimulate(argv[2], steps, dt);
     }
-    if (argc > 1) {
+    if (argc > 1 && std::string(argv[1]) == "--watch") {
+        watch = true;
+        if (argc >= 3) scriptPath = argv[2];
+    } else if (argc > 1) {
         scriptPath = argv[1];
     }
     yuki::logInfo("Engine starting");
@@ -145,7 +149,7 @@ int main(int argc, char** argv) {
     yuki::logInfo("Time system initialized");
     yuki::EngineConfig config;
     yuki::Window window(config.width, config.height, config.title);
-    yuki::YukiRunner runner(scriptPath);
+    yuki::YukiRunner runner(scriptPath, watch);
     runner.run(window);
     return 0;
 }

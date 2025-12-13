@@ -20,6 +20,9 @@ namespace {
     constexpr float kConsoleFontScale = 2.0f;
 }
 DevConsole::DevConsole(Renderer2D* r, Interpreter* i) : active(false), renderer(r), interpreter(i), fontId(-1) {}
+void DevConsole::setInterpreter(Interpreter* i) {
+    interpreter = i;
+}
 void DevConsole::toggle() {
     active = !active;
     if (active) cursorPos = (int)input.size();
@@ -176,7 +179,7 @@ void DevConsole::scroll(int delta) {
     if (scrollOffset > maxOffset) scrollOffset = maxOffset;
 }
 void DevConsole::updateInput() {
-    if (isKeyPressed(GLFW_KEY_GRAVE_ACCENT) || isKeyPressed(GLFW_KEY_F1)) {
+    if (isKeyPressed(GLFW_KEY_GRAVE_ACCENT) || isKeyPressed(GLFW_KEY_WORLD_1) || isKeyPressed(GLFW_KEY_F1) || isKeyPressed(GLFW_KEY_F2)) {
         toggle();
         return;
     }

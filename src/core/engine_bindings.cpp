@@ -92,6 +92,13 @@ std::string EngineBindings::resolveAssetPath(const std::string& rel) {
     return p.string();
 }
 
+std::vector<std::string> EngineBindings::getLoadedModulePaths() {
+    std::vector<std::string> out;
+    out.reserve(st.moduleExports.size());
+    for (const auto& kv : st.moduleExports) out.push_back(kv.first);
+    return out;
+}
+
 void EngineBindings::update(double dt) {
     hotReloadAse(dt);
     if (st.renderer) st.renderer->cameraUpdate(dt);

@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include "../script/function_value.hpp"
 
 namespace yuki {
@@ -14,6 +15,7 @@ public:
     static void update(double dt);
     static void setAssetBase(const std::string& base);
     static std::string resolveAssetPath(const std::string& rel);
+    static std::vector<std::string> getLoadedModulePaths();
     static void registerBuiltins(std::unordered_map<std::string, NativeFn>& builtins);
 };
 } // namespace yuki

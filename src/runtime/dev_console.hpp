@@ -7,6 +7,7 @@ class Interpreter;
 class DevConsole {
 public:
     DevConsole(Renderer2D* renderer, Interpreter* interpreter);
+    void setInterpreter(Interpreter* interpreter);
     void toggle();
     bool isActive() const;
     void updateInput();
