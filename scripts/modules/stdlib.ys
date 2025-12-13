@@ -1,23 +1,24 @@
 var Anim = {};
 Anim.new = fn(sheet_id, frames, fps, loop) {
     var id = anim_create(sheet_id, frames, fps, loop);
-    var self = { id: id, x: 0, y: 0, origin_x: -1, origin_y: -1, scale_x: 1, scale_y: 1, rot: 0, flip_x: false, flip_y: false, alpha: 1 };
+    var self = { id: id };
 
-    self.set_pos = fn(x, y) { self.x = x; self.y = y; };
-    self.set_origin = fn(ox, oy) { self.origin_x = ox; self.origin_y = oy; anim_set_origin(id, ox, oy); };
-    self.set_scale = fn(sx, sy) { self.scale_x = sx; self.scale_y = sy; anim_set_scale(id, sx, sy); };
-    self.set_rot = fn(deg) { self.rot = deg; anim_set_rotation(id, deg); };
-    self.set_flip = fn(fx, fy) { self.flip_x = fx; self.flip_y = fy; anim_set_flip(id, fx, fy); };
-    self.set_alpha = fn(a) { self.alpha = a; anim_set_alpha(id, a); };
+    self.set_pos = fn(x, y) { anim_set_position(id, x, y); };
+    self.get_pos = fn() { return anim_get_position(id); };
+    self.set_origin = fn(ox, oy) { anim_set_origin(id, ox, oy); };
+    self.set_scale = fn(sx, sy) { anim_set_scale(id, sx, sy); };
+    self.get_scale = fn() { return anim_get_scale(id); };
+    self.set_rot = fn(deg) { anim_set_rotation(id, deg); };
+    self.get_rot = fn() { return anim_get_rotation(id); };
+    self.set_flip = fn(fx, fy) { anim_set_flip(id, fx, fy); };
+    self.set_alpha = fn(a) { anim_set_alpha(id, a); };
+    self.get_alpha = fn() { return anim_get_alpha(id); };
 
     self.play = fn(reset) { anim_play(id, reset); };
     self.stop = fn() { anim_stop(id); };
     self.reset = fn() { anim_reset(id); };
 
-    self.draw = fn() {
-        anim_set_position(id, self.x, self.y);
-        anim_draw(id);
-    };
+    self.draw = fn() { anim_draw(id); };
 
     return self;
 };
@@ -29,17 +30,21 @@ Anim.from_ase = fn(ase_id, tag, loop, fps_override) {
     if (fps == nil) fps = -1;
     var id = ase_anim(ase_id, tag, l, fps);
     if (id < 0) return nil;
-    var self = { id: id, x: 0, y: 0, origin_x: -1, origin_y: -1, scale_x: 1, scale_y: 1, rot: 0, flip_x: false, flip_y: false, alpha: 1 };
-    self.set_pos = fn(x, y) { self.x = x; self.y = y; };
-    self.set_origin = fn(ox, oy) { self.origin_x = ox; self.origin_y = oy; anim_set_origin(id, ox, oy); };
-    self.set_scale = fn(sx, sy) { self.scale_x = sx; self.scale_y = sy; anim_set_scale(id, sx, sy); };
-    self.set_rot = fn(deg) { self.rot = deg; anim_set_rotation(id, deg); };
-    self.set_flip = fn(fx, fy) { self.flip_x = fx; self.flip_y = fy; anim_set_flip(id, fx, fy); };
-    self.set_alpha = fn(a) { self.alpha = a; anim_set_alpha(id, a); };
+    var self = { id: id };
+    self.set_pos = fn(x, y) { anim_set_position(id, x, y); };
+    self.get_pos = fn() { return anim_get_position(id); };
+    self.set_origin = fn(ox, oy) { anim_set_origin(id, ox, oy); };
+    self.set_scale = fn(sx, sy) { anim_set_scale(id, sx, sy); };
+    self.get_scale = fn() { return anim_get_scale(id); };
+    self.set_rot = fn(deg) { anim_set_rotation(id, deg); };
+    self.get_rot = fn() { return anim_get_rotation(id); };
+    self.set_flip = fn(fx, fy) { anim_set_flip(id, fx, fy); };
+    self.set_alpha = fn(a) { anim_set_alpha(id, a); };
+    self.get_alpha = fn() { return anim_get_alpha(id); };
     self.play = fn(reset) { anim_play(id, reset); };
     self.stop = fn() { anim_stop(id); };
     self.reset = fn() { anim_reset(id); };
-    self.draw = fn() { anim_set_position(id, self.x, self.y); anim_draw(id); };
+    self.draw = fn() { anim_draw(id); };
     return self;
 };
 
@@ -78,6 +83,10 @@ Input.mouse_x = fn() { return get_mouse_x(); };
 Input.mouse_y = fn() { return get_mouse_y(); };
 
 var Tween = {};
+Tween._target_id = fn(target) {
+    if (typeof(target) == "map" and target.id != nil) return target.id;
+    return target;
+};
 Tween.after = fn(seconds, cb) {
     var id = tween_value(0, 1, seconds);
     if (cb != nil) tween_on_complete(id, cb);
@@ -100,7 +109,8 @@ Tween.value = fn(from, to, seconds, easing) {
 Tween.to = fn(target, prop, to, seconds, easing, cb) {
     var e = easing;
     if (e == nil) e = "linear";
-    var id = tween_property(target, prop, to, seconds, e);
+    var tid = Tween._target_id(target);
+    var id = tween_property(tid, prop, to, seconds, e);
     if (cb != nil) tween_on_complete(id, cb);
     return id;
 };
@@ -109,7 +119,9 @@ Tween.sequence = fn(tween_ids) {
     var sid = tween_sequence_start();
     var i = 0;
     while (i < len(tween_ids)) {
-        tween_sequence_add(sid, tween_ids[i]);
+        var t = tween_ids[i];
+        if (typeof(t) == "map" and t.id != nil) t = t.id;
+        tween_sequence_add(sid, t);
         i = i + 1;
     }
     var self = { id: sid };
@@ -121,7 +133,9 @@ Tween.parallel = fn(tween_ids) {
     var pid = tween_parallel_start();
     var i = 0;
     while (i < len(tween_ids)) {
-        tween_parallel_add(pid, tween_ids[i]);
+        var t = tween_ids[i];
+        if (typeof(t) == "map" and t.id != nil) t = t.id;
+        tween_parallel_add(pid, t);
         i = i + 1;
     }
     var self = { id: pid };

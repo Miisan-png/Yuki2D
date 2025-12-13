@@ -1,0 +1,19 @@
+var Y = require("stdlib.ys", "Y");
+var aid = -1;
+var t = 0;
+
+fn init() {
+    var sheet = -1;
+    var a = Y.Anim.new(sheet, [0], 1, true);
+    aid = a.id;
+    a.set_pos(0, 0);
+    Y.Tween.to(a, "x", 60, 1.0, "linear");
+}
+
+fn update(dt) {
+    t = t + dt;
+    if (t >= 1.0) {
+        var p = anim_get_position(aid);
+        assert(p.x >= 59.0, "tween_property(anim, x) failed");
+    }
+}

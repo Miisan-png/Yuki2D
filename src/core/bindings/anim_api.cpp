@@ -126,6 +126,40 @@ Value apiAnimDraw(const std::vector<Value>& args) {
     return Value::nilVal();
 }
 
+Value apiAnimGetPosition(const std::vector<Value>& args) {
+    if (args.empty()) return Value::map({});
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (!anim) return Value::map({});
+    std::unordered_map<std::string, Value> m;
+    m["x"] = Value::number(anim->transform.x);
+    m["y"] = Value::number(anim->transform.y);
+    return Value::map(m);
+}
+
+Value apiAnimGetScale(const std::vector<Value>& args) {
+    if (args.empty()) return Value::map({});
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (!anim) return Value::map({});
+    std::unordered_map<std::string, Value> m;
+    m["x"] = Value::number(anim->transform.scaleX);
+    m["y"] = Value::number(anim->transform.scaleY);
+    return Value::map(m);
+}
+
+Value apiAnimGetRotation(const std::vector<Value>& args) {
+    if (args.empty()) return Value::number(0);
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (!anim) return Value::number(0);
+    return Value::number(anim->transform.rotationDeg);
+}
+
+Value apiAnimGetAlpha(const std::vector<Value>& args) {
+    if (args.empty()) return Value::number(1);
+    auto* anim = getAnimation((int)args[0].numberVal);
+    if (!anim) return Value::number(1);
+    return Value::number(anim->alpha);
+}
+
 void updateAnimationsTick(double dt) {
     for (auto& kv : st.animations) {
         Animation& a = kv.second;

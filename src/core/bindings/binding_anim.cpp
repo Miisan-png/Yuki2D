@@ -14,5 +14,9 @@ void registerAnimBuiltins(std::unordered_map<std::string, NativeFn>& builtins) {
     builtins["anim_set_flip"] = apiAnimSetFlip;
     builtins["anim_set_alpha"] = apiAnimSetAlpha;
     builtins["anim_draw"] = apiAnimDraw;
+    builtins["anim_get_position"] = apiAnimGetPosition;
+    builtins["anim_get_scale"] = apiAnimGetScale;
+    builtins["anim_get_rotation"] = apiAnimGetRotation;
+    builtins["anim_get_alpha"] = apiAnimGetAlpha;
 }
 } // namespace yuki

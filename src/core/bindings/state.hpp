@@ -53,7 +53,7 @@ struct Collider {
     bool solid = true;
 };
 
-enum class TweenTargetType { None, Sprite };
+enum class TweenTargetType { None, Sprite, Animation };
 enum class TweenType { Value, Property };
 struct TweenTarget {
     TweenTargetType type = TweenTargetType::None;

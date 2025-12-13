@@ -14,6 +14,10 @@ Value apiAnimSetRotation(const std::vector<Value>& args);
 Value apiAnimSetFlip(const std::vector<Value>& args);
 Value apiAnimSetAlpha(const std::vector<Value>& args);
 Value apiAnimDraw(const std::vector<Value>& args);
+Value apiAnimGetPosition(const std::vector<Value>& args);
+Value apiAnimGetScale(const std::vector<Value>& args);
+Value apiAnimGetRotation(const std::vector<Value>& args);
+Value apiAnimGetAlpha(const std::vector<Value>& args);
 
 void updateAnimationsTick(double dt);
 } // namespace yuki

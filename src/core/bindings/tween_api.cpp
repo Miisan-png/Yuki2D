@@ -25,7 +25,6 @@ double applyEasing(double t, const std::string& easing) {
 }
 
 bool getPropertyValue(const TweenTarget& target, const std::string& prop, float& out) {
-    if (!st.renderer) return false;
     if (target.type == TweenTargetType::Sprite) {
         auto it = st.spriteStates.find(target.id);
         if (it == st.spriteStates.end()) return false;
@@ -37,10 +36,20 @@ bool getPropertyValue(const TweenTarget& target, const std::string& prop, float&
         if (prop == "scale_y") { out = s.scaleY; return true; }
         if (prop == "alpha") { out = s.alpha; return true; }
     }
+    if (target.type == TweenTargetType::Animation) {
+        auto it = st.animations.find(target.id);
+        if (it == st.animations.end()) return false;
+        const auto& a = it->second;
+        if (prop == "x") { out = a.transform.x; return true; }
+        if (prop == "y") { out = a.transform.y; return true; }
+        if (prop == "rotation") { out = a.transform.rotationDeg; return true; }
+        if (prop == "scale_x") { out = a.transform.scaleX; return true; }
+        if (prop == "scale_y") { out = a.transform.scaleY; return true; }
+        if (prop == "alpha") { out = a.alpha; return true; }
+    }
     return false;
 }
 void setPropertyValue(const TweenTarget& target, const std::string& prop, float v) {
-    if (!st.renderer) return;
     if (target.type == TweenTargetType::Sprite) {
         auto& s = st.spriteStates[target.id];
         if (prop == "x") { s.x = v; s.overrideX = true; }
@@ -50,12 +59,34 @@ void setPropertyValue(const TweenTarget& target, const std::string& prop, float 
         else if (prop == "scale_y") { s.scaleY = v; s.overrideScaleY = true; }
         else if (prop == "alpha") { s.alpha = v; s.overrideAlpha = true; }
     }
+    if (target.type == TweenTargetType::Animation) {
+        auto it = st.animations.find(target.id);
+        if (it == st.animations.end()) return;
+        auto& a = it->second;
+        if (prop == "x") a.transform.x = v;
+        else if (prop == "y") a.transform.y = v;
+        else if (prop == "rotation") a.transform.rotationDeg = v;
+        else if (prop == "scale_x") a.transform.scaleX = v;
+        else if (prop == "scale_y") a.transform.scaleY = v;
+        else if (prop == "alpha") a.alpha = v;
+    }
 }
 TweenTarget parseTarget(const Value& obj) {
     TweenTarget tgt;
-    if (obj.isNumber()) {
-        tgt.type = TweenTargetType::Sprite;
-        tgt.id = (int)obj.numberVal;
+    int id = -1;
+    if (obj.isNumber()) id = (int)obj.numberVal;
+    else if (obj.isMap() && obj.mapPtr) {
+        auto it = obj.mapPtr->find("id");
+        if (it != obj.mapPtr->end() && it->second.isNumber()) id = (int)it->second.numberVal;
+    }
+    if (id >= 0) {
+        if (st.animations.find(id) != st.animations.end()) {
+            tgt.type = TweenTargetType::Animation;
+            tgt.id = id;
+        } else {
+            tgt.type = TweenTargetType::Sprite;
+            tgt.id = id;
+        }
     }
     return tgt;
 }
