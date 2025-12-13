@@ -230,4 +230,39 @@ Value apiCameraFollowLerp(const std::vector<Value>& args) {
     st.renderer->cameraFollowLerp((float)args[0].numberVal);
     return Value::nilVal();
 }
+
+Value apiCameraSetDeadzone(const std::vector<Value>& args) {
+    if (args.size() < 2 || !st.renderer) return Value::nilVal();
+    st.renderer->cameraSetDeadzone((float)args[0].numberVal, (float)args[1].numberVal);
+    return Value::nilVal();
+}
+
+Value apiCameraSetPixelSnap(const std::vector<Value>& args) {
+    if (args.empty() || !st.renderer) return Value::nilVal();
+    bool on = args[0].isBool() ? args[0].boolVal : (args[0].isNumber() ? args[0].numberVal != 0.0 : false);
+    st.renderer->cameraSetPixelSnap(on);
+    return Value::nilVal();
+}
+
+Value apiCameraSetBounds(const std::vector<Value>& args) {
+    if (args.size() < 4 || !st.renderer) return Value::nilVal();
+    st.renderer->cameraSetBounds((float)args[0].numberVal, (float)args[1].numberVal, (float)args[2].numberVal, (float)args[3].numberVal);
+    return Value::nilVal();
+}
+
+Value apiCameraClearBounds(const std::vector<Value>& args) {
+    (void)args;
+    if (!st.renderer) return Value::nilVal();
+    st.renderer->cameraClearBounds();
+    return Value::nilVal();
+}
+
+Value apiCameraShake(const std::vector<Value>& args) {
+    if (args.size() < 2 || !st.renderer) return Value::nilVal();
+    float intensity = (float)args[0].numberVal;
+    float duration = (float)args[1].numberVal;
+    float freq = args.size() > 2 ? (float)args[2].numberVal : 30.0f;
+    st.renderer->cameraShake(intensity, duration, freq);
+    return Value::nilVal();
+}
 } // namespace yuki

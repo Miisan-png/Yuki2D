@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <random>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -701,13 +702,122 @@ void Renderer2D::cameraFollowLerp(float speed) {
     cameraFollowSpeed = speed;
 }
 
+void Renderer2D::cameraSetDeadzone(float w, float h) {
+    if (w <= 0.0f || h <= 0.0f) {
+        cameraDeadzoneOn = false;
+        cameraDeadzoneW = 0.0f;
+        cameraDeadzoneH = 0.0f;
+        return;
+    }
+    cameraDeadzoneOn = true;
+    cameraDeadzoneW = w;
+    cameraDeadzoneH = h;
+}
+
+void Renderer2D::cameraSetPixelSnap(bool on) {
+    cameraPixelSnap = on;
+}
+
+void Renderer2D::cameraSetBounds(float x, float y, float w, float h) {
+    if (w <= 0.0f || h <= 0.0f) {
+        cameraBoundsOn = false;
+        cameraBoundsW = 0.0f;
+        cameraBoundsH = 0.0f;
+        cameraBoundsX = 0.0f;
+        cameraBoundsY = 0.0f;
+        return;
+    }
+    cameraBoundsOn = true;
+    cameraBoundsX = x;
+    cameraBoundsY = y;
+    cameraBoundsW = w;
+    cameraBoundsH = h;
+}
+
+void Renderer2D::cameraClearBounds() {
+    cameraBoundsOn = false;
+    cameraBoundsW = 0.0f;
+    cameraBoundsH = 0.0f;
+    cameraBoundsX = 0.0f;
+    cameraBoundsY = 0.0f;
+}
+
+void Renderer2D::cameraShake(float intensity, float duration, float frequency) {
+    if (intensity <= 0.0f || duration <= 0.0f) {
+        cameraShakeIntensity = 0.0f;
+        cameraShakeDuration = 0.0f;
+        cameraShakeTimeLeft = 0.0f;
+        cameraShakeOffsetX = 0.0f;
+        cameraShakeOffsetY = 0.0f;
+        cameraShakeAccum = 0.0f;
+        return;
+    }
+    cameraShakeIntensity = intensity;
+    cameraShakeDuration = duration;
+    cameraShakeTimeLeft = duration;
+    cameraShakeFrequency = (frequency > 0.0f) ? frequency : 30.0f;
+    cameraShakeAccum = 0.0f;
+}
+
 void Renderer2D::cameraUpdate(double dt) {
-    if (!cameraFollowOn) return;
-    float a = (float)(cameraFollowSpeed * dt);
-    if (a < 0.0f) a = 0.0f;
-    if (a > 1.0f) a = 1.0f;
-    cameraX += (cameraTargetX - cameraX) * a;
-    cameraY += (cameraTargetY - cameraY) * a;
+    float desiredX = cameraX;
+    float desiredY = cameraY;
+    if (cameraFollowOn) {
+        desiredX = cameraTargetX;
+        desiredY = cameraTargetY;
+        if (cameraDeadzoneOn) {
+            float halfW = cameraDeadzoneW * 0.5f;
+            float halfH = cameraDeadzoneH * 0.5f;
+            float dx = cameraTargetX - cameraX;
+            float dy = cameraTargetY - cameraY;
+            if (dx > halfW) desiredX = cameraX + (dx - halfW);
+            else if (dx < -halfW) desiredX = cameraX + (dx + halfW);
+            else desiredX = cameraX;
+            if (dy > halfH) desiredY = cameraY + (dy - halfH);
+            else if (dy < -halfH) desiredY = cameraY + (dy + halfH);
+            else desiredY = cameraY;
+        }
+        float a = (float)(cameraFollowSpeed * dt);
+        if (a < 0.0f) a = 0.0f;
+        if (a > 1.0f) a = 1.0f;
+        cameraX += (desiredX - cameraX) * a;
+        cameraY += (desiredY - cameraY) * a;
+    }
+
+    if (cameraBoundsOn) {
+        float halfViewW = ((float)virtualW * 0.5f) / cameraZoom;
+        float halfViewH = ((float)virtualH * 0.5f) / cameraZoom;
+        float minX = cameraBoundsX + halfViewW;
+        float maxX = cameraBoundsX + cameraBoundsW - halfViewW;
+        float minY = cameraBoundsY + halfViewH;
+        float maxY = cameraBoundsY + cameraBoundsH - halfViewH;
+        if (minX > maxX) cameraX = cameraBoundsX + cameraBoundsW * 0.5f;
+        else cameraX = std::max(minX, std::min(cameraX, maxX));
+        if (minY > maxY) cameraY = cameraBoundsY + cameraBoundsH * 0.5f;
+        else cameraY = std::max(minY, std::min(cameraY, maxY));
+    }
+
+    if (cameraShakeTimeLeft > 0.0f) {
+        cameraShakeTimeLeft -= (float)dt;
+        if (cameraShakeTimeLeft < 0.0f) cameraShakeTimeLeft = 0.0f;
+        cameraShakeAccum += (float)dt;
+        float step = 1.0f / cameraShakeFrequency;
+        if (cameraShakeAccum >= step) {
+            cameraShakeAccum = std::fmod(cameraShakeAccum, step);
+            float t = (cameraShakeDuration > 0.0f) ? (cameraShakeTimeLeft / cameraShakeDuration) : 0.0f;
+            float mag = cameraShakeIntensity * t;
+            static std::mt19937 rng{std::random_device{}()};
+            std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+            cameraShakeOffsetX = dist(rng) * mag;
+            cameraShakeOffsetY = dist(rng) * mag;
+        }
+        if (cameraShakeTimeLeft <= 0.0f) {
+            cameraShakeOffsetX = 0.0f;
+            cameraShakeOffsetY = 0.0f;
+            cameraShakeIntensity = 0.0f;
+            cameraShakeDuration = 0.0f;
+        }
+    }
 }
 
 void Renderer2D::debugDrawRect(float x, float y, float w, float h, float r, float g, float b) {
@@ -770,10 +880,29 @@ void Renderer2D::flush(int screenWidth, int screenHeight) {
         batch.clear();
     };
 
+    float renderX = cameraX + cameraShakeOffsetX;
+    float renderY = cameraY + cameraShakeOffsetY;
+    if (cameraBoundsOn) {
+        float halfViewW = ((float)virtualW * 0.5f) / cameraZoom;
+        float halfViewH = ((float)virtualH * 0.5f) / cameraZoom;
+        float minX = cameraBoundsX + halfViewW;
+        float maxX = cameraBoundsX + cameraBoundsW - halfViewW;
+        float minY = cameraBoundsY + halfViewH;
+        float maxY = cameraBoundsY + cameraBoundsH - halfViewH;
+        if (minX > maxX) renderX = cameraBoundsX + cameraBoundsW * 0.5f;
+        else renderX = std::max(minX, std::min(renderX, maxX));
+        if (minY > maxY) renderY = cameraBoundsY + cameraBoundsH * 0.5f;
+        else renderY = std::max(minY, std::min(renderY, maxY));
+    }
+    if (cameraPixelSnap) {
+        float step = 1.0f / cameraZoom;
+        renderX = std::floor(renderX / step + 0.5f) * step;
+        renderY = std::floor(renderY / step + 0.5f) * step;
+    }
     Mat4 view = mul(translate((float)virtualW * 0.5f, (float)virtualH * 0.5f, 0.0f),
                     mul(rotateZ(cameraRotationDeg),
                         mul(scale(cameraZoom, cameraZoom, 1.0f),
-                            translate(-cameraX, -cameraY, 0.0f))));
+                            translate(-renderX, -renderY, 0.0f))));
     Mat4 mvp = mul(proj, view);
     glUniformMatrix4fv(uniformMvp, 1, GL_FALSE, mvp.m);
 

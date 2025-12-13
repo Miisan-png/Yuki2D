@@ -25,5 +25,10 @@ void registerRenderBuiltins(std::unordered_map<std::string, NativeFn>& builtins)
     builtins["camera_follow_target"] = apiCameraFollowTarget;
     builtins["camera_follow_enable"] = apiCameraFollowEnable;
     builtins["camera_follow_lerp"] = apiCameraFollowLerp;
+    builtins["camera_set_deadzone"] = apiCameraSetDeadzone;
+    builtins["camera_set_pixel_snap"] = apiCameraSetPixelSnap;
+    builtins["camera_set_bounds"] = apiCameraSetBounds;
+    builtins["camera_clear_bounds"] = apiCameraClearBounds;
+    builtins["camera_shake"] = apiCameraShake;
 }
 } // namespace yuki

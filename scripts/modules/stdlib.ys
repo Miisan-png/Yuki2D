@@ -143,4 +143,21 @@ Tween.parallel = fn(tween_ids) {
     return self;
 };
 
-exports = { Anim: Anim, Collider: Collider, Input: Input, Tween: Tween };
+var Camera = {};
+Camera.set = fn(x, y) { camera_set(x, y); };
+Camera.zoom = fn(z) { camera_set_zoom(z); };
+Camera.rot = fn(deg) { camera_set_rotation(deg); };
+Camera.follow = fn(on) { camera_follow_enable(on); };
+Camera.follow_target = fn(x, y) { camera_follow_target(x, y); };
+Camera.follow_lerp = fn(speed) { camera_follow_lerp(speed); };
+Camera.deadzone = fn(w, h) { camera_set_deadzone(w, h); };
+Camera.pixel_snap = fn(on) { camera_set_pixel_snap(on); };
+Camera.bounds = fn(x, y, w, h) { camera_set_bounds(x, y, w, h); };
+Camera.clear_bounds = fn() { camera_clear_bounds(); };
+Camera.shake = fn(intensity, seconds, frequency) {
+    var f = frequency;
+    if (f == nil) f = 30;
+    camera_shake(intensity, seconds, f);
+};
+
+exports = { Anim: Anim, Collider: Collider, Input: Input, Tween: Tween, Camera: Camera };

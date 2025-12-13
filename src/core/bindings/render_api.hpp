@@ -24,4 +24,9 @@ Value apiCameraSetRotation(const std::vector<Value>& args);
 Value apiCameraFollowTarget(const std::vector<Value>& args);
 Value apiCameraFollowEnable(const std::vector<Value>& args);
 Value apiCameraFollowLerp(const std::vector<Value>& args);
+Value apiCameraSetDeadzone(const std::vector<Value>& args);
+Value apiCameraSetPixelSnap(const std::vector<Value>& args);
+Value apiCameraSetBounds(const std::vector<Value>& args);
+Value apiCameraClearBounds(const std::vector<Value>& args);
+Value apiCameraShake(const std::vector<Value>& args);
 } // namespace yuki

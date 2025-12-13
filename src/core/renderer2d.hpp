@@ -119,12 +119,18 @@ public:
     void cameraFollowTarget(float x, float y);
     void cameraFollowEnable(bool on);
     void cameraFollowLerp(float speed);
+    void cameraSetDeadzone(float w, float h);
+    void cameraSetPixelSnap(bool on);
+    void cameraSetBounds(float x, float y, float w, float h);
+    void cameraClearBounds();
+    void cameraShake(float intensity, float duration, float frequency = 30.0f);
     void cameraUpdate(double dt);
     float cameraGetX() const { return cameraX; }
     float cameraGetY() const { return cameraY; }
     float cameraGetZoom() const { return cameraZoom; }
     float cameraGetRotation() const { return cameraRotationDeg; }
     bool cameraIsFollowEnabled() const { return cameraFollowOn; }
+    bool cameraIsPixelSnapEnabled() const { return cameraPixelSnap; }
 
     void debugDrawRect(float x, float y, float w, float h, float r, float g, float b);
     void debugDrawLine(float x1, float y1, float x2, float y2, float r, float g, float b);
@@ -158,6 +164,22 @@ private:
     float cameraTargetX = 640.0f;
     float cameraTargetY = 360.0f;
     float cameraFollowSpeed = 8.0f;
+    bool cameraDeadzoneOn = false;
+    float cameraDeadzoneW = 0.0f;
+    float cameraDeadzoneH = 0.0f;
+    bool cameraPixelSnap = false;
+    bool cameraBoundsOn = false;
+    float cameraBoundsX = 0.0f;
+    float cameraBoundsY = 0.0f;
+    float cameraBoundsW = 0.0f;
+    float cameraBoundsH = 0.0f;
+    float cameraShakeIntensity = 0.0f;
+    float cameraShakeDuration = 0.0f;
+    float cameraShakeTimeLeft = 0.0f;
+    float cameraShakeFrequency = 30.0f;
+    float cameraShakeAccum = 0.0f;
+    float cameraShakeOffsetX = 0.0f;
+    float cameraShakeOffsetY = 0.0f;
     unsigned int shaderProgram = 0;
     unsigned int vbo = 0;
     int attribPos = -1;
