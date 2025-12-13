@@ -1,0 +1,43 @@
+var Y = require("stdlib.ys", "Y");
+
+var anim;
+var wall;
+var t = 0;
+
+fn init() {
+    var sheet = load_sprite_sheet("asset_pack/characters/player.png", 48, 48);
+    anim = Y.Anim.new(sheet, [0, 1, 2, 3, 4, 5], 8, true);
+    anim.set_origin(24, 24);
+    anim.set_scale(2, 2);
+    anim.set_pos(200, 180);
+
+    wall = Y.Collider.rect(260, 210, 120, 60, "wall", true);
+
+    Y.Tween.after(0.25, fn() { print("stdlib demo ready"); });
+}
+
+fn update(dt) {
+    t = t + dt;
+
+    var dx = 0;
+    var dy = 0;
+    var speed = 120;
+    if (Y.Input.down("a") or Y.Input.down("left")) dx = dx - speed * dt;
+    if (Y.Input.down("d") or Y.Input.down("right")) dx = dx + speed * dt;
+    if (Y.Input.down("w") or Y.Input.down("up")) dy = dy - speed * dt;
+    if (Y.Input.down("s") or Y.Input.down("down")) dy = dy + speed * dt;
+
+    if (dx != 0 or dy != 0) {
+        var hits = wall.move(dx, dy);
+        if (len(hits) > 0 and t > 0.2) {
+            t = 0;
+            print("hit:", hits[0].tag);
+        }
+    }
+
+    set_clear_color(0.08, 0.09, 0.12);
+    draw_rect(wall.x, wall.y, wall.w, wall.h, 0.2, 0.35, 0.5);
+
+    anim.play(false);
+    anim.draw();
+}

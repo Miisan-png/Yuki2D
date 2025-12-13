@@ -1,0 +1,132 @@
+var Anim = {};
+Anim.new = fn(sheet_id, frames, fps, loop) {
+    var id = anim_create(sheet_id, frames, fps, loop);
+    var self = { id: id, x: 0, y: 0, origin_x: -1, origin_y: -1, scale_x: 1, scale_y: 1, rot: 0, flip_x: false, flip_y: false, alpha: 1 };
+
+    self.set_pos = fn(x, y) { self.x = x; self.y = y; };
+    self.set_origin = fn(ox, oy) { self.origin_x = ox; self.origin_y = oy; anim_set_origin(id, ox, oy); };
+    self.set_scale = fn(sx, sy) { self.scale_x = sx; self.scale_y = sy; anim_set_scale(id, sx, sy); };
+    self.set_rot = fn(deg) { self.rot = deg; anim_set_rotation(id, deg); };
+    self.set_flip = fn(fx, fy) { self.flip_x = fx; self.flip_y = fy; anim_set_flip(id, fx, fy); };
+    self.set_alpha = fn(a) { self.alpha = a; anim_set_alpha(id, a); };
+
+    self.play = fn(reset) { anim_play(id, reset); };
+    self.stop = fn() { anim_stop(id); };
+    self.reset = fn() { anim_reset(id); };
+
+    self.draw = fn() {
+        anim_set_position(id, self.x, self.y);
+        anim_draw(id);
+    };
+
+    return self;
+};
+
+Anim.from_ase = fn(ase_id, tag, loop, fps_override) {
+    var l = loop;
+    if (l == nil) l = true;
+    var fps = fps_override;
+    if (fps == nil) fps = -1;
+    var id = ase_anim(ase_id, tag, l, fps);
+    if (id < 0) return nil;
+    var self = { id: id, x: 0, y: 0, origin_x: -1, origin_y: -1, scale_x: 1, scale_y: 1, rot: 0, flip_x: false, flip_y: false, alpha: 1 };
+    self.set_pos = fn(x, y) { self.x = x; self.y = y; };
+    self.set_origin = fn(ox, oy) { self.origin_x = ox; self.origin_y = oy; anim_set_origin(id, ox, oy); };
+    self.set_scale = fn(sx, sy) { self.scale_x = sx; self.scale_y = sy; anim_set_scale(id, sx, sy); };
+    self.set_rot = fn(deg) { self.rot = deg; anim_set_rotation(id, deg); };
+    self.set_flip = fn(fx, fy) { self.flip_x = fx; self.flip_y = fy; anim_set_flip(id, fx, fy); };
+    self.set_alpha = fn(a) { self.alpha = a; anim_set_alpha(id, a); };
+    self.play = fn(reset) { anim_play(id, reset); };
+    self.stop = fn() { anim_stop(id); };
+    self.reset = fn() { anim_reset(id); };
+    self.draw = fn() { anim_set_position(id, self.x, self.y); anim_draw(id); };
+    return self;
+};
+
+var Collider = {};
+Collider.rect = fn(x, y, w, h, tag, solid) {
+    var s = solid;
+    if (s == nil) s = true;
+    var id = collider_create(x, y, w, h, tag, s);
+    var self = { id: id, x: x, y: y, w: w, h: h, tag: tag, solid: s };
+
+    self.set_pos = fn(nx, ny) { self.x = nx; self.y = ny; collider_set_position(id, nx, ny); };
+    self.set_size = fn(nw, nh) { self.w = nw; self.h = nh; collider_set_size(id, nw, nh); };
+    self.get_pos = fn() { return collider_get_position(id); };
+    self.get_size = fn() { return collider_get_size(id); };
+    self.move = fn(dx, dy) {
+        var hits = collider_move(id, dx, dy);
+        var pos = collider_get_position(id);
+        self.x = pos.x;
+        self.y = pos.y;
+        return hits;
+    };
+
+    return self;
+};
+
+var Input = {};
+Input.down = fn(key) { return is_key_down(key); };
+Input.pressed = fn(key) { return is_key_pressed(key); };
+Input.released = fn(key) { return is_key_released(key); };
+Input.bind = fn(action, key_or_mouse) { bind_action(action, key_or_mouse); };
+Input.unbind = fn(action) { unbind_action(action); };
+Input.action_down = fn(action) { return is_action_down(action); };
+Input.action_pressed = fn(action) { return is_action_pressed(action); };
+Input.action_released = fn(action) { return is_action_released(action); };
+Input.mouse_x = fn() { return get_mouse_x(); };
+Input.mouse_y = fn() { return get_mouse_y(); };
+
+var Tween = {};
+Tween.after = fn(seconds, cb) {
+    var id = tween_value(0, 1, seconds);
+    if (cb != nil) tween_on_complete(id, cb);
+    return id;
+};
+
+Tween.value = fn(from, to, seconds, easing) {
+    var e = easing;
+    if (e == nil) e = "linear";
+    var id = tween_value(from, to, seconds, e);
+    var self = { id: id };
+    self.get = fn() { return tween_value_get(id); };
+    self.pause = fn() { tween_pause(id); };
+    self.resume = fn() { tween_resume(id); };
+    self.cancel = fn() { tween_cancel(id); };
+    self.on_complete = fn(cb) { if (cb != nil) tween_on_complete(id, cb); return self; };
+    return self;
+};
+
+Tween.to = fn(target, prop, to, seconds, easing, cb) {
+    var e = easing;
+    if (e == nil) e = "linear";
+    var id = tween_property(target, prop, to, seconds, e);
+    if (cb != nil) tween_on_complete(id, cb);
+    return id;
+};
+
+Tween.sequence = fn(tween_ids) {
+    var sid = tween_sequence_start();
+    var i = 0;
+    while (i < len(tween_ids)) {
+        tween_sequence_add(sid, tween_ids[i]);
+        i = i + 1;
+    }
+    var self = { id: sid };
+    self.play = fn() { tween_sequence_play(sid); };
+    return self;
+};
+
+Tween.parallel = fn(tween_ids) {
+    var pid = tween_parallel_start();
+    var i = 0;
+    while (i < len(tween_ids)) {
+        tween_parallel_add(pid, tween_ids[i]);
+        i = i + 1;
+    }
+    var self = { id: pid };
+    self.play = fn() { tween_parallel_play(pid); };
+    return self;
+};
+
+exports = { Anim: Anim, Collider: Collider, Input: Input, Tween: Tween };

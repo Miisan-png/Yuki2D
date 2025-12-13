@@ -14,7 +14,7 @@ All functions are available globally after engine init. Booleans accept `true`/`
 - `draw_text(font_id, text, x, y, [k/v: scale, color r g b a, align left|center|right, max_width, line_height])`
 - `measure_text_width(font_id, text, scale=1, max_width=0, line_height=0)`
 - `measure_text_height(font_id, text, scale=1, max_width=0, line_height=0)`
-- Camera: `camera_set(x, y)`, `camera_set_zoom(z)`, `camera_set_rotation(deg)`, `camera_follow_target(x, y)`, `camera_follow_enable(on)`, `camera_follow_lerp(speed)`, `set_virtual_resolution(w, h)`
+- `set_virtual_resolution(w, h)`
 
 ## Animation
 - `anim_create(sheet_id, frames_array, fps, loop_bool)` -> animId
@@ -56,7 +56,10 @@ All functions are available globally after engine init. Booleans accept `true`/`
 - Sequences/parallels: `sequence_create(array_of_tween_ids)` -> seqId; `sequence_play(seqId)`, similar for parallels.
 
 ## Core
-- `get_time()` -> seconds since start
+- `time()` -> seconds since start
 - `get_screen_size()` -> map("w", w, "h", h)
 - `print(...)` logs to console
-- `import("path")` to load other scripts relative to main script dir
+- `import("path", alias=nil)` loads a module; if it exports a map and no alias is provided, its keys are injected into globals
+- `require("path", alias=nil)` loads a module and returns its `exports` without injecting globals
+- `error(...)` raises a runtime error
+- `assert(cond, msg="assert failed")` raises a runtime error if falsey

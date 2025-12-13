@@ -6,7 +6,10 @@ Yuki2D is an experimental 2D engine with its own game-focused scripting language
 ## Build and run
 - Prereqs: CMake, a C++17 compiler, OpenGL/GLFW dev libs.
 - Build: `cmake -S . -B build && cmake --build build`
-- Run demo: `./run.sh` or `build/yuki2d ../demo/main.ys`
+- Run demo: `./run.sh` or `./run.sh demo/main.ys`
+- Headless scripting:
+  - Parse-only: `./build/yuki2d --check demo/main.ys`
+  - Run `init()` only (no window): `./build/yuki2d --run demo/main.ys`
 
 ## Your first script
 ```ys
