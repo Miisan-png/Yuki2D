@@ -116,6 +116,8 @@ public:
     void setVirtualResolution(int w, int h);
     int getVirtualWidth() const { return virtualW; }
     int getVirtualHeight() const { return virtualH; }
+    void setPixelPerfectOutput(bool on) { pixelPerfectOutput = on; }
+    bool isPixelPerfectOutput() const { return pixelPerfectOutput; }
 
     void cameraSet(float x, float y);
     void cameraSetZoom(float zoom);
@@ -160,6 +162,7 @@ private:
     bool debugEnabled;
     int virtualW = 1280;
     int virtualH = 720;
+    bool pixelPerfectOutput = true;
     float cameraX = 640.0f;
     float cameraY = 360.0f;
     float cameraZoom = 1.0f;

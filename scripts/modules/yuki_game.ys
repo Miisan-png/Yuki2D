@@ -152,7 +152,6 @@ World.create = fn(ctx) {
 
             if (e.on_fixed != nil) e.on_fixed(dt, self.ctx, self, e);
 
-            if (e.anim != nil) e.anim.set_pos(e.x, e.y);
             if (c != nil and c.id != nil) sync_to_collider(e);
             i = i + 1;
         }
@@ -175,6 +174,21 @@ World.create = fn(ctx) {
             if (!e.alive) {
                 i = i + 1;
                 continue;
+            }
+            var rx = e.x;
+            var ry = e.y;
+            if (self.ctx != nil and self.ctx.pixel_snap == true) {
+                rx = floor(rx + 0.5);
+                ry = floor(ry + 0.5);
+            }
+            e.render_x = rx;
+            e.render_y = ry;
+            if (e.anim != nil) {
+                var ox = e.anim_offset_x;
+                var oy = e.anim_offset_y;
+                if (ox == nil) ox = 0;
+                if (oy == nil) oy = 0;
+                e.anim.set_pos(rx + ox, ry + oy);
             }
             if (e.on_draw != nil) e.on_draw(dt, self.ctx, self, e);
             else if (e.anim != nil) {

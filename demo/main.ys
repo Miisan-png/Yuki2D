@@ -15,11 +15,11 @@ var ui_combo_items = ["Move", "Edit", "Debug"];
 var ui_combo_idx = 0;
 var ui_drag_f = 0.0;
 var ui_drag_i = 0;
-var show_imgui_demo = false;
 var sheet_id = -1;
 var ui_progress = 0.0;
 var show_modal = false;
 var selected_scene = "menu";
+var show_inspector = true;
 
 fn init() {
     set_virtual_resolution(640, 360);
@@ -31,7 +31,9 @@ fn init() {
         input: Y.Input,
         camera: Y.Camera,
         font: load_font("../assets/fonts/monogram_bitmap.png", "../assets/fonts/monogram_bitmap.json"),
-        scene: nil
+        scene: nil,
+        debug: nil,
+        pixel_snap: true
     };
     ctx.scene = Scene.create(ctx);
     ctx.scene.set("scenes/menu.ys");
@@ -42,153 +44,58 @@ fn init() {
 fn update(dt) {
     ctx.scene.tick(dt);
     if (ctx.input != nil and ctx.input.pressed("i")) show_ui = !show_ui;
-    if (ctx.input != nil and ctx.input.pressed("f3")) show_imgui_demo = !show_imgui_demo;
     ui_progress = ui_progress + dt * 0.25;
     if (ui_progress > 1.0) ui_progress = 0.0;
 
     if (UI != nil and UI.enabled() and show_ui) {
         UI.set_next_window_pos(12, 12, UI.C.Cond.Once);
-        UI.window("Yuki UI", fn() {
-            UI.text("Hot reload: --watch, F5");
+        var st = UI.window("Player Inspector", fn() {
             UI.text("Toggle UI: I");
-            UI.text("ImGui demo: F3");
+            UI.text("Tab: player collider debug");
             UI.separator();
 
-            var r = UI.input_text_ex("Name", ui_name, 128);
-            ui_name = r.value;
-            UI.text("Hello " + ui_name);
-            UI.progress(ui_progress, "loading");
-
-            UI.separator();
             if (UI.button("Menu")) ctx.scene.set("scenes/menu.ys");
             UI.same_line();
             if (UI.button("Game")) ctx.scene.set("scenes/game.ys");
+            UI.separator();
+
+            if (ctx.debug == nil or ctx.debug.player == nil) {
+                UI.text("No player loaded (start Game).");
+                return;
+            }
+
+            var p = ctx.debug.player;
+            UI.text("pos: " + p.x + ", " + p.y);
+            if (p.render_x != nil and p.render_y != nil) {
+                UI.text("render: " + p.render_x + ", " + p.render_y);
+            }
+            UI.text("vel: " + p.vx + ", " + p.vy);
+            UI.text("facing: " + p.facing);
+
+            if (p.hp != nil) {
+                p.hp = UI.drag_int("HP", p.hp, 1, 0, 999);
+            }
+            if (p.speed != nil) {
+                p.speed = UI.slider_float("Speed", p.speed, 40, 360);
+            }
+            if (p.debug != nil) {
+                p.debug = UI.checkbox("Draw collider", p.debug);
+            }
 
             UI.separator();
-            ui_zoom = UI.slider_float("Camera Zoom", ui_zoom, 0.25, 3.0);
+            ui_zoom = UI.slider_float("Camera Zoom", ui_zoom, 0.5, 3.0);
             if (ctx.camera != nil) ctx.camera.zoom(ui_zoom);
-        }, true, UI.C.WindowFlags.AlwaysAutoResize);
-
-        UI.set_next_window_pos(12, 200, UI.C.Cond.Once);
-        UI.window("UI Widgets", fn() {
-            UI.text("dt: " + dt);
-            UI.text("want mouse: " + UI.want_mouse());
-            UI.text("want keyboard: " + UI.want_keyboard());
-            UI.separator();
-
-            if (UI.header("Themes", true)) {
-                if (UI.button("Yuki")) UI.theme("yuki");
-                UI.same_line();
-                if (UI.button("Dark")) UI.theme("dark");
-                UI.same_line();
-                if (UI.button("Light")) UI.theme("light");
-                UI.same_line();
-                if (UI.button("Classic")) UI.theme("classic");
-            }
-
-            if (UI.header("Scale + Font", true)) {
-                ui_scale = UI.slider_float("UI Scale", ui_scale, 0.75, 2.5);
-                UI.set_scale(ui_scale);
-
-                var fr = UI.input_text_ex("TTF Path", ui_font_path, 256);
-                ui_font_path = fr.value;
-                ui_font_size = UI.drag_int("Font px", ui_font_size, 1, 10, 48);
-                if (UI.button("Load TTF + Set Default")) {
-                    var fid = UI.font_add_ttf(ui_font_path, ui_font_size);
-                    if (fid >= 0) {
-                        ui_font_id = fid;
-                        UI.font_set_default(ui_font_id);
-                    }
-                }
-                UI.text("Hint: drop a .ttf at assets/fonts/ui.ttf");
-            }
-
-            if (UI.header("Images", true)) {
-                if (sheet_id >= 0) UI.image_sheet(sheet_id, 96, 96);
-            }
-
-            if (UI.header("More Widgets", true)) {
-                ui_combo_idx = UI.combo("Mode", ui_combo_idx, ui_combo_items);
-                ui_drag_f = UI.drag_float("DragFloat", ui_drag_f, 0.01, -10, 10);
-                ui_drag_i = UI.drag_int("DragInt", ui_drag_i, 1, -50, 50);
-                ui_accent = UI.color4("Accent", ui_accent[0], ui_accent[1], ui_accent[2], ui_accent[3]);
-                UI.text_colored(ui_accent[0], ui_accent[1], ui_accent[2], ui_accent[3], "accent preview");
+            ctx.pixel_snap = UI.checkbox("Pixel snap render", ctx.pixel_snap == true);
+            if (ctx.debug != nil and ctx.debug.camera != nil) {
+                var cm = ctx.debug.camera;
+                cm.room_mode = UI.checkbox("Room camera", cm.room_mode == true);
+                cm.smooth = UI.checkbox("Smooth follow", cm.smooth == true);
+                cm.pixel_snap = UI.checkbox("Camera pixel snap", cm.pixel_snap == true);
             }
 
             UI.separator();
-            if (UI.button("Open Modal")) {
-                UI.open_popup("Modal");
-                show_modal = true;
-            }
-        }, true, UI.C.WindowFlags.AlwaysAutoResize);
-
-        UI.set_next_window_pos(260, 12, UI.C.Cond.Once);
-        UI.window("Scene Table", fn() {
-            UI.table("scenes", 2, UI.C.TableFlags.RowBg + UI.C.TableFlags.Borders, fn() {
-                UI.table_setup_column("Scene", 0, 0);
-                UI.table_setup_column("Action", 0, 0);
-                UI.table_headers_row();
-
-                fn row(label, path) {
-                    UI.table_next_row();
-                    UI.table_set_column(0);
-                    var is_sel = selected_scene == label;
-                    if (UI.selectable(label, is_sel)) selected_scene = label;
-                    UI.table_set_column(1);
-                    if (UI.button("Go##" + label)) ctx.scene.set(path);
-                }
-
-                row("menu", "scenes/menu.ys");
-                row("game", "scenes/game.ys");
-            });
-        }, true, UI.C.WindowFlags.AlwaysAutoResize);
-
-        UI.set_next_window_pos(520, 12, UI.C.Cond.Once);
-        UI.window("Tabs", fn() {
-            if (UI.begin_tab_bar("tabs", UI.C.TabBarFlags.Reorderable)) {
-                var t1 = UI.begin_tab_item_ex("About", true, 0);
-                if (t1.visible) {
-                    UI.text("ImGui is best used as a debug UI in-game.");
-                    UI.text("This binding is intentionally small and grows as needed.");
-                    UI.end_tab_item();
-                }
-                var t2 = UI.begin_tab_item_ex("Modal", true, 0);
-                if (t2.visible) {
-                    UI.text("Modal blocks interaction with other windows.");
-                    if (UI.button("Open Modal##tab")) {
-                        UI.open_popup("Modal");
-                        show_modal = true;
-                    }
-                    UI.end_tab_item();
-                }
-                UI.end_tab_bar();
-            }
-        }, true, UI.C.WindowFlags.AlwaysAutoResize);
-
-        if (UI.begin_main_menu_bar()) {
-            if (UI.begin_menu("Demo", true)) {
-                if (UI.menu_item("Toggle UI", "I", false, true)) show_ui = !show_ui;
-                if (UI.menu_item("ImGui Demo Window", "F3", show_imgui_demo, true)) show_imgui_demo = !show_imgui_demo;
-                if (UI.menu_item("Open Modal", "", false, true)) {
-                    UI.open_popup("Modal");
-                    show_modal = true;
-                }
-                UI.end_menu();
-            }
-            UI.end_main_menu_bar();
-        }
-
-        if (show_modal) {
-            var ms = UI.modal("Modal", show_modal, fn() {
-                UI.text("This is a modal popup.");
-                UI.text("Close with the button or ESC.");
-                if (UI.button("Close")) UI.close_popup();
-            });
-            if (ms.open == false) show_modal = false;
-        }
-
-        if (show_imgui_demo) {
-            show_imgui_demo = UI.demo(show_imgui_demo);
-        }
+            UI.progress(ui_progress, "demo");
+        }, show_inspector, UI.C.WindowFlags.AlwaysAutoResize);
+        show_inspector = st.open;
     }
 }

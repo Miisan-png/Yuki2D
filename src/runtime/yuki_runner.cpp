@@ -15,6 +15,7 @@
 #include <vector>
 #include <unordered_map>
 #include <GLFW/glfw3.h>
+#include <GL/gl.h>
 #include <optional>
 #include <filesystem>
 namespace yuki {
@@ -180,6 +181,7 @@ void YukiRunner::run(Window& window) {
         window.getFramebufferSize(fbW, fbH);
 
         renderer.flush(fbW, fbH);
+        glViewport(0, 0, fbW, fbH);
         imgui.render();
         if (console.isActive()) {
             console.drawOverlay(renderer.getVirtualWidth(), renderer.getVirtualHeight());

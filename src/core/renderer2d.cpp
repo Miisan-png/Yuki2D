@@ -879,7 +879,25 @@ void Renderer2D::flush(int screenWidth, int screenHeight, bool useCamera) {
         }
     }
 
-    glViewport(0, 0, screenWidth, screenHeight);
+    if (pixelPerfectOutput && virtualW > 0 && virtualH > 0) {
+        float sx = (float)screenWidth / (float)virtualW;
+        float sy = (float)screenHeight / (float)virtualH;
+        float s = std::min(sx, sy);
+        int scale = (int)std::floor(s);
+        if (scale >= 1) {
+            int vpW = virtualW * scale;
+            int vpH = virtualH * scale;
+            int vpX = (screenWidth - vpW) / 2;
+            int vpY = (screenHeight - vpH) / 2;
+            if (vpX < 0) vpX = 0;
+            if (vpY < 0) vpY = 0;
+            glViewport(vpX, vpY, vpW, vpH);
+        } else {
+            glViewport(0, 0, screenWidth, screenHeight);
+        }
+    } else {
+        glViewport(0, 0, screenWidth, screenHeight);
+    }
     Mat4 proj = ortho(0.0f, (float)virtualW, (float)virtualH, 0.0f, -1.0f, 1.0f);
 
     glUseProgram(shaderProgram);

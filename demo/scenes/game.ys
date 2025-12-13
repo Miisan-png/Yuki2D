@@ -13,6 +13,7 @@ var player;
 var font_id = -1;
 var virtual_w = 640;
 var virtual_h = 360;
+var cam_mode;
 
 fn wall(world, x, y, w, h, r, g, b) {
     var cid = collider_create(x, y, w, h, "wall", true);
@@ -33,6 +34,7 @@ fn ensure_init(ctx) {
     initialized = true;
 
     set_virtual_resolution(virtual_w, virtual_h);
+    ctx.pixel_snap = true;
     if (ctx.font == nil) {
         ctx.font = load_font("../assets/fonts/monogram_bitmap.png", "../assets/fonts/monogram_bitmap.json");
     }
@@ -40,8 +42,6 @@ fn ensure_init(ctx) {
 
     if (ctx.camera != nil) {
         ctx.camera.follow(true);
-        ctx.camera.follow_lerp(10);
-        ctx.camera.deadzone(120, 80);
         ctx.camera.pixel_snap(true);
         ctx.camera.bounds(-2000, -2000, 4000, 4000);
         ctx.camera.zoom(1.0);
@@ -51,6 +51,14 @@ fn ensure_init(ctx) {
     particles = Particles.create(ctx);
     world = World.create(ctx);
     player = Player.spawn(ctx, world, particles, virtual_w * 0.5, virtual_h * 0.5);
+    cam_mode = {
+        room_mode: false,
+        smooth: false,
+        pixel_snap: true,
+        room_w: virtual_w,
+        room_h: virtual_h
+    };
+    ctx.debug = { player: player, world: world, particles: particles, camera: cam_mode };
 
     wall(world, -120, 40, 80, 220, 0.2, 0.35, 0.5);
     wall(world, 220, 200, 160, 60, 0.2, 0.35, 0.5);
@@ -75,7 +83,30 @@ fn ensure_init(ctx) {
         world.fixed(dt);
     });
     sched.add("late", fn(dt, ctx2) {
-        if (ctx2.camera != nil) ctx2.camera.follow_target(player.x, player.y);
+        if (ctx2.camera == nil) return;
+        ctx2.camera.pixel_snap(cam_mode.pixel_snap == true);
+        if (cam_mode.smooth == true) {
+            ctx2.camera.follow_lerp(10);
+            ctx2.camera.deadzone(120, 80);
+        } else {
+            ctx2.camera.follow_lerp(1000);
+            ctx2.camera.deadzone(0, 0);
+        }
+        var px = player.x;
+        var py = player.y;
+        if (cam_mode.pixel_snap == true) {
+            px = floor(px + 0.5);
+            py = floor(py + 0.5);
+        }
+        if (cam_mode.room_mode == true) {
+            var rx = floor(px / cam_mode.room_w);
+            var ry = floor(py / cam_mode.room_h);
+            var cx = rx * cam_mode.room_w + cam_mode.room_w * 0.5;
+            var cy = ry * cam_mode.room_h + cam_mode.room_h * 0.5;
+            ctx2.camera.follow_target(cx, cy);
+        } else {
+            ctx2.camera.follow_target(px, py);
+        }
     });
     sched.add("draw", fn(dt, ctx2) {
         set_clear_color(0.08, 0.09, 0.12);

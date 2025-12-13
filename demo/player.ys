@@ -42,6 +42,8 @@ fn spawn(ctx, world, particles, x, y) {
     e.speed = 140;
     e.facing = "down";
     e.anim = idle_down;
+    e.anim_offset_x = -48;
+    e.anim_offset_y = -48;
     e._idle_down = idle_down;
     e._idle_right = idle_right;
     e._idle_up = idle_up;
@@ -129,8 +131,12 @@ fn spawn(ctx, world, particles, x, y) {
         self.anim.draw();
         if (self.debug and self.collider != nil and self.collider.id != nil) {
             var c = self.collider;
-            var left = self.x - c.w * 0.5 + c.ox;
-            var top = self.y - c.h * 0.5 + c.oy;
+            var px = self.render_x;
+            var py = self.render_y;
+            if (px == nil) px = self.x;
+            if (py == nil) py = self.y;
+            var left = px - c.w * 0.5 + c.ox;
+            var top = py - c.h * 0.5 + c.oy;
             draw_rect(left - 2, top - 2, c.w + 4, 2, 0.2, 1, 0.2, 1);
             draw_rect(left - 2, top + c.h, c.w + 4, 2, 0.2, 1, 0.2, 1);
             draw_rect(left - 2, top, 2, c.h, 0.2, 1, 0.2, 1);
