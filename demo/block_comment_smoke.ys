@@ -1,0 +1,10 @@
+fn init() {
+    /*
+      multi
+      line
+    */
+    print("block comment ok");
+}
+
+fn update(dt) {
+}

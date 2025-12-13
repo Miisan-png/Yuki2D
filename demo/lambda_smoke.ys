@@ -1,0 +1,15 @@
+fn init() {
+    var add = fn(a, b) { return a + b; };
+    assert(add(2, 3) == 5, "lambda call failed");
+
+    var x = 10;
+    var f = fn(y) { return x + y; };
+    assert(f(1) == 11, "closure capture failed");
+    x = 20;
+    assert(f(1) == 21, "closure capture update failed");
+
+    print("lambda ok");
+}
+
+fn update(dt) {
+}

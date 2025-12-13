@@ -14,23 +14,15 @@
 namespace yuki {
 namespace {
 BindingsState& st = bindingsState();
-}
 
-Value apiLog(const std::vector<Value>& args) {
-    std::string msg;
-    for (size_t i = 0; i < args.size(); i++) {
-        msg += args[i].toString();
-    }
-    printf("[INFO] %s\n", msg.c_str());
-    return Value::nilVal();
-}
-Value apiImport(const std::vector<Value>& args) {
+Value importInternal(const std::vector<Value>& args, bool injectGlobals) {
     if (args.empty() || !st.interpreter) return Value::nilVal();
     std::filesystem::path p(args[0].toString());
     if (p.extension().empty()) p.replace_extension(".ys");
     std::vector<std::filesystem::path> candidates;
     if (p.is_absolute()) candidates.push_back(p);
     else {
+        if (!st.moduleDirStack.empty()) candidates.push_back(st.moduleDirStack.back() / p);
         for (const auto& base : st.importPaths) candidates.push_back(base / p);
         candidates.push_back(p);
         std::filesystem::path modulesDir = std::filesystem::path("scripts/modules") / p;
@@ -53,7 +45,7 @@ Value apiImport(const std::vector<Value>& args) {
     auto cached = st.moduleExports.find(key);
     if (cached != st.moduleExports.end()) {
         if (alias) st.interpreter->globals->define(*alias, cached->second);
-        else if (cached->second.isMap() && cached->second.mapPtr) {
+        else if (injectGlobals && cached->second.isMap() && cached->second.mapPtr) {
             for (const auto& kv : *cached->second.mapPtr) {
                 st.interpreter->globals->define(kv.first, kv.second);
             }
@@ -83,8 +75,10 @@ Value apiImport(const std::vector<Value>& args) {
     std::shared_ptr<Environment> previousEnv = st.interpreter->env;
     std::shared_ptr<Environment> moduleEnv = std::make_shared<Environment>(st.interpreter->globals);
     st.interpreter->env = moduleEnv;
+    st.moduleDirStack.push_back(canon.parent_path());
     st.interpreter->exec(statements);
     if (st.interpreter->hasRuntimeErrors()) {
+        st.moduleDirStack.pop_back();
         st.interpreter->env = previousEnv;
         for (const auto& err : st.interpreter->getRuntimeErrors()) {
             logError(err);
@@ -97,17 +91,34 @@ Value apiImport(const std::vector<Value>& args) {
     auto exports = moduleEnv->get("exports");
     if (exports.has_value()) exportsVal = exports.value();
     st.moduleExports[key] = exportsVal;
+    st.moduleDirStack.pop_back();
     st.interpreter->env = previousEnv;
     if (alias) {
         st.interpreter->globals->define(*alias, exportsVal);
         return exportsVal;
     }
-    if (exportsVal.isMap() && exportsVal.mapPtr) {
+    if (injectGlobals && exportsVal.isMap() && exportsVal.mapPtr) {
         for (const auto& kv : *exportsVal.mapPtr) {
             st.interpreter->globals->define(kv.first, kv.second);
         }
     }
     return exportsVal;
+}
+}
+
+Value apiLog(const std::vector<Value>& args) {
+    std::string msg;
+    for (size_t i = 0; i < args.size(); i++) {
+        msg += args[i].toString();
+    }
+    printf("[INFO] %s\n", msg.c_str());
+    return Value::nilVal();
+}
+Value apiImport(const std::vector<Value>& args) {
+    return importInternal(args, true);
+}
+Value apiRequire(const std::vector<Value>& args) {
+    return importInternal(args, false);
 }
 Value apiTime(const std::vector<Value>&) {
     return Value::number(glfwGetTime());

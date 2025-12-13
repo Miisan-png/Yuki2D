@@ -1,0 +1,26 @@
+fn init() {
+    var a = [1, 2, 3];
+    assert(a[0] == 1, "array index read");
+    a[1] = 9;
+    assert(a[1] == 9, "array index write");
+    assert(len(a) == 3, "len(array)");
+
+    var m = { hp: 10, name: "bob" };
+    assert(m.hp == 10, "map dot read");
+    m.hp = 20;
+    assert(m["hp"] == 20, "map set via dot");
+    m["mp"] = 7;
+    assert(m.mp == 7, "map set via index");
+    assert(len(m) == 3, "len(map)");
+
+    push(a, 4);
+    assert(a[3] == 4, "push");
+    var last = pop(a);
+    assert(last == 4, "pop");
+    assert(len(a) == 3, "len after pop");
+
+    print("index/prop ok");
+}
+
+fn update(dt) {
+}

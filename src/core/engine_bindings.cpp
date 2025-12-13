@@ -78,8 +78,10 @@ void EngineBindings::init(Window* window, Renderer2D* renderer, Interpreter* int
 void EngineBindings::setAssetBase(const std::string& base) {
     st.assetBase = base;
     st.importPaths.clear();
+    st.moduleDirStack.clear();
     if (!base.empty()) {
         st.importPaths.push_back(std::filesystem::path(base));
+        st.moduleDirStack.push_back(std::filesystem::path(base));
     }
 }
 

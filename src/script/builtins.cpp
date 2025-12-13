@@ -280,6 +280,23 @@ Value builtinRandi(const std::vector<Value>& args) {
     return Value::number((double)dist(rng));
 }
 
+Value builtinLen(const std::vector<Value>& args) {
+    if (args.empty()) return Value::number(0);
+    const Value& v = args[0];
+    if (v.isArray() && v.arrayPtr) return Value::number((double)v.arrayPtr->size());
+    if (v.isMap() && v.mapPtr) return Value::number((double)v.mapPtr->size());
+    if (v.isString()) return Value::number((double)v.stringVal.size());
+    return Value::number(0);
+}
+
+Value builtinPush(const std::vector<Value>& args) {
+    return builtinArrayPush(args);
+}
+
+Value builtinPop(const std::vector<Value>& args) {
+    return builtinArrayPop(args);
+}
+
 void registerScriptBuiltins(std::unordered_map<std::string, NativeFn>& builtins) {
     builtins["print"] = builtinPrint;
     builtins["array"] = builtinArray;
@@ -315,6 +332,9 @@ void registerScriptBuiltins(std::unordered_map<std::string, NativeFn>& builtins)
     builtins["assert"] = builtinAssert;
     builtins["randf"] = builtinRandf;
     builtins["randi"] = builtinRandi;
+    builtins["len"] = builtinLen;
+    builtins["push"] = builtinPush;
+    builtins["pop"] = builtinPop;
     builtins["sqrt"] = [](const std::vector<Value>& args) -> Value {
         if (args.size() >= 1 && args[0].isNumber()) return Value::number(std::sqrt(args[0].numberVal));
         return Value::number(0);

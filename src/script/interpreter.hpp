@@ -15,6 +15,9 @@ struct ReturnSignal {
     Value value;
 };
 
+struct BreakSignal {};
+struct ContinueSignal {};
+
 class Interpreter {
 public:
     Interpreter();
@@ -48,6 +51,7 @@ private:
     std::vector<std::string> callStack;
     std::vector<std::vector<std::unique_ptr<Stmt>>> ownedModules;
     int functionDepth = 0;
+    int loopDepth = 0;
 };
 
 }

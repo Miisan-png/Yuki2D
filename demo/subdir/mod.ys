@@ -1,0 +1,2 @@
+fn get_value() { return 42; }
+exports = map("get_value", get_value);

@@ -4,6 +4,7 @@ namespace yuki {
 Tokenizer::Tokenizer(const std::string& source) : source(source) {}
 std::vector<Token> Tokenizer::scanTokens() {
     std::vector<Token> tokens;
+    errors.clear();
     size_t current = 0;
     int line = 1;
     int col = 1;
@@ -22,6 +23,7 @@ std::vector<Token> Tokenizer::scanTokens() {
             case ',': tokens.push_back({TokenType::Comma, ",", startLine, startCol}); break;
             case ':': tokens.push_back({TokenType::Colon, ":", startLine, startCol}); break;
             case ';': tokens.push_back({TokenType::Semicolon, ";", startLine, startCol}); break;
+            case '.': tokens.push_back({TokenType::Dot, ".", startLine, startCol}); break;
             case '+': tokens.push_back({TokenType::Plus, "+", startLine, startCol}); break;
             case '-': tokens.push_back({TokenType::Minus, "-", startLine, startCol}); break;
             case '*': tokens.push_back({TokenType::Star, "*", startLine, startCol}); break;
@@ -31,6 +33,24 @@ std::vector<Token> Tokenizer::scanTokens() {
                     while (current < source.size() && source[current] != '\n') {
                         current++;
                         col++;
+                    }
+                } else if (current < source.size() && source[current] == '*') {
+                    current++;
+                    col++;
+                    bool closed = false;
+                    while (current < source.size()) {
+                        char cc = source[current++];
+                        col++;
+                        if (cc == '\n') { line++; col = 1; }
+                        if (cc == '*' && current < source.size() && source[current] == '/') {
+                            current++;
+                            col++;
+                            closed = true;
+                            break;
+                        }
+                    }
+                    if (!closed) {
+                        errors.push_back("[Tokenizer] line " + std::to_string(startLine) + ", col " + std::to_string(startCol) + ": Unterminated block comment");
                     }
                 } else {
                     tokens.push_back({TokenType::Slash, "/", startLine, startCol});

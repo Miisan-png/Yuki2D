@@ -8,6 +8,7 @@ enum class TokenType {
     LeftBracket, RightBracket,
     LeftParen, RightParen, LeftBrace, RightBrace,
     Comma, Colon, Semicolon,
+    Dot,
     Plus, Minus, Star, Slash, Percent, Equal, Bang,
     EqualEqual, BangEqual, Less, LessEqual, Greater, GreaterEqual,
     True, False,

@@ -14,6 +14,7 @@ std::string tokenTypeToString(TokenType type) {
         case TokenType::Comma: return "Comma";
         case TokenType::Colon: return "Colon";
         case TokenType::Semicolon: return "Semicolon";
+        case TokenType::Dot: return "Dot";
         case TokenType::Plus: return "Plus";
         case TokenType::Minus: return "Minus";
         case TokenType::Star: return "Star";

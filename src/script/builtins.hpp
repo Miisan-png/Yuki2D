@@ -40,4 +40,7 @@ namespace yuki {
     Value builtinAssert(const std::vector<Value>& args);
     Value builtinRandf(const std::vector<Value>& args);
     Value builtinRandi(const std::vector<Value>& args);
+    Value builtinLen(const std::vector<Value>& args);
+    Value builtinPush(const std::vector<Value>& args);
+    Value builtinPop(const std::vector<Value>& args);
 }

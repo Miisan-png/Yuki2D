@@ -18,7 +18,16 @@ std::vector<std::unique_ptr<Stmt>> Parser::parse() {
 
 std::unique_ptr<Stmt> Parser::declaration() {
     try {
-        if (matchKeyword("fn")) return funDecl();
+        if (checkKeyword("fn")) {
+            bool isNamed = false;
+            if (current + 2 < (int)tokens.size()) {
+                isNamed = tokens[current + 1].type == TokenType::Identifier && tokens[current + 2].type == TokenType::LeftParen;
+            }
+            if (isNamed) {
+                advance();
+                return funDecl();
+            }
+        }
         if (matchKeyword("var")) return varDecl();
         return statement();
     } catch (const std::runtime_error&) {
@@ -56,7 +65,22 @@ std::unique_ptr<Stmt> Parser::statement() {
     if (matchKeyword("if")) return ifStatement();
     if (matchKeyword("while")) return whileStatement();
     if (matchKeyword("for")) return forStatement();
+    if (matchKeyword("do")) {
+        std::unique_ptr<Stmt> body = statement();
+        consume(TokenType::Identifier, "Expect 'while' after do body.");
+        if (previous().text != "while") {
+            error(previous(), "Expect 'while' after do body.");
+            throw std::runtime_error("Expect 'while' after do body.");
+        }
+        consume(TokenType::LeftParen, "Expect '(' after 'while'.");
+        std::unique_ptr<Expr> condition = expression();
+        consume(TokenType::RightParen, "Expect ')' after condition.");
+        consume(TokenType::Semicolon, "Expect ';' after do-while.");
+        return std::make_unique<DoWhileStmt>(std::move(body), std::move(condition));
+    }
     if (matchKeyword("return")) return returnStatement();
+    if (matchKeyword("break")) { consume(TokenType::Semicolon, "Expect ';' after break."); return std::make_unique<BreakStmt>(); }
+    if (matchKeyword("continue")) { consume(TokenType::Semicolon, "Expect ';' after continue."); return std::make_unique<ContinueStmt>(); }
     if (check(TokenType::LeftBrace)) return block(); 
     return exprStmt();
 }
@@ -169,6 +193,18 @@ std::unique_ptr<Expr> Parser::assignment() {
             std::string name = static_cast<VarExpr*>(expr.get())->name;
             return std::make_unique<AssignExpr>(name, std::move(value));
         }
+        if (expr->getKind() == ExprKind::Index) {
+            auto* ix = static_cast<IndexExpr*>(expr.get());
+            std::unique_ptr<Expr> obj = std::move(ix->object);
+            std::unique_ptr<Expr> idx = std::move(ix->index);
+            return std::make_unique<SetIndexExpr>(std::move(obj), std::move(idx), std::move(value));
+        }
+        if (expr->getKind() == ExprKind::Get) {
+            auto* gx = static_cast<GetExpr*>(expr.get());
+            std::unique_ptr<Expr> obj = std::move(gx->object);
+            std::string name = gx->name;
+            return std::make_unique<SetExpr>(std::move(obj), name, std::move(value));
+        }
 
         error(equals, "Invalid assignment target.");
     }
@@ -255,6 +291,13 @@ std::unique_ptr<Expr> Parser::call() {
     while (true) {
         if (match({TokenType::LeftParen})) {
             expr = finishCall(std::move(expr));
+        } else if (match({TokenType::LeftBracket})) {
+            std::unique_ptr<Expr> index = expression();
+            consume(TokenType::RightBracket, "Expect ']' after index.");
+            expr = std::make_unique<IndexExpr>(std::move(expr), std::move(index));
+        } else if (match({TokenType::Dot})) {
+            Token name = consume(TokenType::Identifier, "Expect property name after '.'.");
+            expr = std::make_unique<GetExpr>(std::move(expr), name.text);
         } else {
             break;
         }
@@ -279,6 +322,18 @@ std::unique_ptr<Expr> Parser::primary() {
     if (match({TokenType::Nil})) return std::make_unique<Literal>("nil");
     if (match({TokenType::LeftBracket})) return arrayLiteral();
     if (match({TokenType::LeftBrace})) return mapLiteral();
+    if (matchKeyword("fn")) {
+        consume(TokenType::LeftParen, "Expect '(' after 'fn'.");
+        std::vector<std::string> parameters;
+        if (!check(TokenType::RightParen)) {
+            do {
+                parameters.push_back(consume(TokenType::Identifier, "Expect parameter name.").text);
+            } while (match({TokenType::Comma}));
+        }
+        consume(TokenType::RightParen, "Expect ')' after parameters.");
+        std::unique_ptr<Block> body = block();
+        return std::make_unique<FunctionExpr>(std::move(parameters), std::move(body));
+    }
     
     if (match({TokenType::Number, TokenType::String})) {
         return std::make_unique<Literal>(previous().text);
@@ -389,7 +444,7 @@ void Parser::synchronize() {
         if (previous().type == TokenType::Semicolon) return;
         if (peek().type == TokenType::Identifier) {
             const std::string& t = peek().text;
-            if (t == "fn" || t == "var" || t == "if" || t == "while" || t == "return") return;
+            if (t == "fn" || t == "var" || t == "if" || t == "while" || t == "for" || t == "do" || t == "return" || t == "break" || t == "continue") return;
         }
         advance();
     }

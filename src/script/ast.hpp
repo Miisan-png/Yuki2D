@@ -22,6 +22,14 @@ struct FunctionDecl;
 struct ReturnStmt;
 struct IfStmt;
 struct WhileStmt;
+struct BreakStmt;
+struct ContinueStmt;
+struct DoWhileStmt;
+struct FunctionExpr;
+struct IndexExpr;
+struct GetExpr;
+struct SetIndexExpr;
+struct SetExpr;
 
 enum class ExprKind {
     Literal,
@@ -29,7 +37,12 @@ enum class ExprKind {
     AssignExpr, // Renamed
     Unary,
     Binary,
-    Call
+    Call,
+    Function,
+    Index,
+    Get,
+    SetIndex,
+    Set
 };
 
 enum class StmtKind {
@@ -39,7 +52,10 @@ enum class StmtKind {
     Function,
     Return,
     If,
-    While
+    While,
+    Break,
+    Continue,
+    DoWhile
 };
 
 // Base Expression
@@ -92,6 +108,48 @@ struct Call : Expr {
     Call(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> arguments)
         : callee(std::move(callee)), arguments(std::move(arguments)) {}
     ExprKind getKind() const override { return ExprKind::Call; }
+};
+
+struct FunctionExpr : Expr {
+    std::vector<std::string> parameters;
+    std::unique_ptr<Block> body;
+    FunctionExpr(std::vector<std::string> parameters, std::unique_ptr<Block> body)
+        : parameters(std::move(parameters)), body(std::move(body)) {}
+    ExprKind getKind() const override { return ExprKind::Function; }
+};
+
+struct IndexExpr : Expr {
+    std::unique_ptr<Expr> object;
+    std::unique_ptr<Expr> index;
+    IndexExpr(std::unique_ptr<Expr> object, std::unique_ptr<Expr> index)
+        : object(std::move(object)), index(std::move(index)) {}
+    ExprKind getKind() const override { return ExprKind::Index; }
+};
+
+struct GetExpr : Expr {
+    std::unique_ptr<Expr> object;
+    std::string name;
+    GetExpr(std::unique_ptr<Expr> object, std::string name)
+        : object(std::move(object)), name(std::move(name)) {}
+    ExprKind getKind() const override { return ExprKind::Get; }
+};
+
+struct SetIndexExpr : Expr {
+    std::unique_ptr<Expr> object;
+    std::unique_ptr<Expr> index;
+    std::unique_ptr<Expr> value;
+    SetIndexExpr(std::unique_ptr<Expr> object, std::unique_ptr<Expr> index, std::unique_ptr<Expr> value)
+        : object(std::move(object)), index(std::move(index)), value(std::move(value)) {}
+    ExprKind getKind() const override { return ExprKind::SetIndex; }
+};
+
+struct SetExpr : Expr {
+    std::unique_ptr<Expr> object;
+    std::string name;
+    std::unique_ptr<Expr> value;
+    SetExpr(std::unique_ptr<Expr> object, std::string name, std::unique_ptr<Expr> value)
+        : object(std::move(object)), name(std::move(name)), value(std::move(value)) {}
+    ExprKind getKind() const override { return ExprKind::Set; }
 };
 
 struct Unary : Expr {
@@ -156,6 +214,22 @@ struct WhileStmt : Stmt {
     WhileStmt(std::unique_ptr<Expr> condition, std::unique_ptr<Stmt> body)
         : condition(std::move(condition)), body(std::move(body)) {}
     StmtKind getKind() const override { return StmtKind::While; }
+};
+
+struct BreakStmt : Stmt {
+    StmtKind getKind() const override { return StmtKind::Break; }
+};
+
+struct ContinueStmt : Stmt {
+    StmtKind getKind() const override { return StmtKind::Continue; }
+};
+
+struct DoWhileStmt : Stmt {
+    std::unique_ptr<Stmt> body;
+    std::unique_ptr<Expr> condition;
+    DoWhileStmt(std::unique_ptr<Stmt> body, std::unique_ptr<Expr> condition)
+        : body(std::move(body)), condition(std::move(condition)) {}
+    StmtKind getKind() const override { return StmtKind::DoWhile; }
 };
 
 }

@@ -87,6 +87,9 @@ void DevConsole::submit() {
         lastExpr.reset(static_cast<ExpressionStmt*>(last.release()));
     }
     interpreter->exec(statements);
+    if (!statements.empty()) {
+        interpreter->retainModule(std::move(statements));
+    }
     if (interpreter->hasRuntimeErrors()) {
         for (const auto& e : interpreter->getRuntimeErrors()) appendLine(e);
         interpreter->clearRuntimeErrors();
@@ -95,6 +98,11 @@ void DevConsole::submit() {
     appendLine("> " + src);
     if (lastExpr) {
         Value v = interpreter->evalExpr(lastExpr->expression.get());
+        {
+            std::vector<std::unique_ptr<Stmt>> keep;
+            keep.push_back(std::unique_ptr<Stmt>(lastExpr.release()));
+            interpreter->retainModule(std::move(keep));
+        }
         if (v.type != ValueType::Nil) appendLine(v.toString());
         if (interpreter->hasRuntimeErrors()) {
             for (const auto& e : interpreter->getRuntimeErrors()) appendLine(e);

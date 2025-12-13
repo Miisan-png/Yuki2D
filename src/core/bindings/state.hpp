@@ -97,6 +97,7 @@ struct BindingsState {
     std::vector<std::filesystem::path> importPaths;
     std::unordered_set<std::string> loadedModules;
     std::unordered_map<std::string, Value> moduleExports;
+    std::vector<std::filesystem::path> moduleDirStack;
 
     std::vector<Area> areas;
     std::unordered_map<std::string, bool> areaState;

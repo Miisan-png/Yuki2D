@@ -1,0 +1,15 @@
+var greet = 123;
+
+fn init() {
+    var util = require("util_module.ys");
+    assert(greet == 123, "require should not inject globals");
+    assert(typeof(util) == "map", "require should return exports");
+    assert(map_has(util, "greet"), "exports missing greet");
+
+    import("util_module.ys");
+    assert(typeof(greet) == "function", "import should inject globals");
+    print("require ok");
+}
+
+fn update(dt) {
+}

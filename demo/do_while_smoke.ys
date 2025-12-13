@@ -1,0 +1,22 @@
+fn init() {
+    var i = 0;
+    do {
+        i = i + 1;
+    } while (i < 3);
+    assert(i == 3, "do-while failed");
+
+    var j = 0;
+    var hits = 0;
+    do {
+        j = j + 1;
+        if (j == 2) continue;
+        if (j == 4) break;
+        hits = hits + 1;
+    } while (true);
+    assert(hits == 2, "do-while break/continue failed");
+
+    print("do-while ok");
+}
+
+fn update(dt) {
+}

@@ -1,0 +1,9 @@
+fn init() {
+    var m = import("mod.ys", "m");
+    var get_value = map_get(m, "get_value");
+    assert(get_value() == 42, "module-relative import failed");
+    print("module-relative import ok");
+}
+
+fn update(dt) {
+}
