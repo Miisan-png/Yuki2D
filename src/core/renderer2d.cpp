@@ -9,6 +9,7 @@
 #include <sstream>
 #include <algorithm>
 #include <random>
+#include <filesystem>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -369,14 +370,17 @@ Renderer2D::~Renderer2D() {
     destroyGraphics();
 }
 
-void Renderer2D::drawRect(float x, float y, float w, float h, float r, float g, float b) {
+void Renderer2D::drawRect(float x, float y, float w, float h, float r, float g, float b, float a) {
     RenderCmd cmd{};
     cmd.type = RenderCmdType::Rect;
-    cmd.rect = {x, y, w, h, r, g, b};
+    cmd.rect = {x, y, w, h, r, g, b, a};
     buffer.push_back(cmd);
 }
 
 int Renderer2D::loadSprite(const std::string& path) {
+    std::string key = std::filesystem::path(path).lexically_normal().string();
+    auto itCached = spriteCache.find(key);
+    if (itCached != spriteCache.end()) return itCached->second;
     int w, h, channels;
     unsigned char* data = stbi_load(path.c_str(), &w, &h, &channels, 4);
     if (!data) {
@@ -393,8 +397,14 @@ int Renderer2D::loadSprite(const std::string& path) {
     stbi_image_free(data);
 
     textures.push_back({texId, w, h});
-    spriteCounter++;
-    return spriteCounter - 1;
+    int id = (int)textures.size() - 1;
+    spriteCache[key] = id;
+    return id;
+}
+
+unsigned int Renderer2D::getSpriteGlHandle(int id) const {
+    if (id < 0 || id >= (int)textures.size()) return 0;
+    return textures[id].handle;
 }
 
 void Renderer2D::drawSprite(int id, float x, float y) {
@@ -413,6 +423,9 @@ void Renderer2D::drawSpriteEx(int id, float x, float y, float rotationDeg, float
 
 int Renderer2D::loadSpriteSheet(const std::string& path, int frameW, int frameH) {
     if (frameW <= 0 || frameH <= 0) return -1;
+    std::string key = std::filesystem::path(path).lexically_normal().string() + "|" + std::to_string(frameW) + "x" + std::to_string(frameH);
+    auto itCached = sheetCache.find(key);
+    if (itCached != sheetCache.end()) return itCached->second;
     int w, h, channels;
     unsigned char* data = stbi_load(path.c_str(), &w, &h, &channels, 4);
     if (!data) {
@@ -449,7 +462,14 @@ int Renderer2D::loadSpriteSheet(const std::string& path, int frameW, int frameH)
     sheet.cols = cols;
     sheet.rows = rows;
     spriteSheets.push_back(sheet);
-    return (int)spriteSheets.size() - 1;
+    int id = (int)spriteSheets.size() - 1;
+    sheetCache[key] = id;
+    return id;
+}
+
+unsigned int Renderer2D::getSpriteSheetGlHandle(int sheetId) const {
+    if (sheetId < 0 || sheetId >= (int)spriteSheets.size()) return 0;
+    return spriteSheets[sheetId].texture;
 }
 
 int Renderer2D::createSpriteSheetFromFrames(int frameW, int frameH, const std::vector<std::vector<unsigned char>>& frames) {
@@ -540,6 +560,9 @@ void Renderer2D::drawSpriteFrame(int sheetId, int frame, float x, float y, float
 
 int Renderer2D::loadFont(const std::string& imagePath, const std::string& metricsPath) {
     (void)imagePath;
+    std::string key = std::filesystem::path(metricsPath).lexically_normal().string();
+    auto itCached = fontCache.find(key);
+    if (itCached != fontCache.end()) return itCached->second;
     std::vector<int> keys;
     std::unordered_map<int, std::vector<int>> rows;
     int glyphHeight = 0;
@@ -615,7 +638,14 @@ int Renderer2D::loadFont(const std::string& imagePath, const std::string& metric
 
     font.texture = texId;
     fonts.push_back(font);
-    return (int)fonts.size() - 1;
+    int id = (int)fonts.size() - 1;
+    fontCache[key] = id;
+    return id;
+}
+
+unsigned int Renderer2D::getFontGlHandle(int fontId) const {
+    if (fontId < 0 || fontId >= (int)fonts.size()) return 0;
+    return fonts[fontId].texture;
 }
 
 void Renderer2D::drawText(int fontId, const std::string& text, float x, float y) {
@@ -924,7 +954,7 @@ void Renderer2D::flush(int screenWidth, int screenHeight, bool useCamera) {
                 verts.pos[2][0] = cmd.rect.x + cmd.rect.w; verts.pos[2][1] = cmd.rect.y + cmd.rect.h;
                 verts.pos[3][0] = cmd.rect.x; verts.pos[3][1] = cmd.rect.y + cmd.rect.h;
                 verts.uv[0][0] = verts.uv[0][1] = verts.uv[1][0] = verts.uv[1][1] = verts.uv[2][0] = verts.uv[2][1] = verts.uv[3][0] = verts.uv[3][1] = 0.0f;
-                pushQuad(batch, verts, cmd.rect.r, cmd.rect.g, cmd.rect.b, 1.0f, false);
+                pushQuad(batch, verts, cmd.rect.r, cmd.rect.g, cmd.rect.b, cmd.rect.a, false);
             } else if (cmd.type == RenderCmdType::Sprite) {
                 if (cmd.sprite.id < 0 || cmd.sprite.id >= (int)textures.size()) {
                     continue;

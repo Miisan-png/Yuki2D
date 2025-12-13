@@ -87,9 +87,11 @@ void EngineBindings::setAssetBase(const std::string& base) {
 
 std::string EngineBindings::resolveAssetPath(const std::string& rel) {
     std::filesystem::path p(rel);
-    if (p.is_absolute()) return p.string();
-    if (!st.assetBase.empty()) return (std::filesystem::path(st.assetBase) / p).string();
-    return p.string();
+    if (p.is_absolute()) return p.lexically_normal().string();
+    if (!st.assetBase.empty()) {
+        return (std::filesystem::path(st.assetBase) / p).lexically_normal().string();
+    }
+    return p.lexically_normal().string();
 }
 
 std::vector<std::string> EngineBindings::getLoadedModulePaths() {
@@ -116,5 +118,6 @@ void EngineBindings::registerBuiltins(std::unordered_map<std::string, NativeFn>&
     registerTweenBuiltins(builtins);
     registerMathBuiltins(builtins);
     registerAseBuiltins(builtins);
+    registerUiBuiltins(builtins);
 }
 } // namespace yuki

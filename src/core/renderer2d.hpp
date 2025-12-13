@@ -33,6 +33,7 @@ struct RenderCmd {
         float r = 1.0f;
         float g = 1.0f;
         float b = 1.0f;
+        float a = 1.0f;
     } rect;
     struct SpriteData {
         int id = -1;
@@ -66,15 +67,18 @@ public:
     Renderer2D();
     ~Renderer2D();
 
-    void drawRect(float x, float y, float w, float h, float r, float g, float b);
+    void drawRect(float x, float y, float w, float h, float r, float g, float b, float a = 1.0f);
     int loadSprite(const std::string& path);
     void drawSprite(int id, float x, float y);
     void drawSpriteEx(int id, float x, float y, float rotationDeg, float scaleX, float scaleY, bool flipX, bool flipY, float originX = -1.0f, float originY = -1.0f, float alpha = 1.0f);
+    unsigned int getSpriteGlHandle(int id) const;
     int loadSpriteSheet(const std::string& path, int frameW, int frameH);
     int createSpriteSheetFromFrames(int frameW, int frameH, const std::vector<std::vector<unsigned char>>& frames);
     bool updateSpriteSheetFromFrames(int sheetId, int frameW, int frameH, const std::vector<std::vector<unsigned char>>& frames);
+    unsigned int getSpriteSheetGlHandle(int sheetId) const;
     void drawSpriteFrame(int sheetId, int frame, float x, float y, float rotationDeg, float scaleX, float scaleY, bool flipX, bool flipY, float originX = -1.0f, float originY = -1.0f, float alpha = 1.0f);
     int loadFont(const std::string& imagePath, const std::string& metricsPath);
+    unsigned int getFontGlHandle(int fontId) const;
     void drawText(int fontId, const std::string& text, float x, float y);
     void drawTextEx(int fontId, const std::string& text, float x, float y, float scale, float r, float g, float b, float a, const std::string& align, float maxWidth, float lineHeight);
     float measureTextWidth(int fontId, const std::string& text, float scale, float maxWidth, float lineHeight);
@@ -190,6 +194,10 @@ private:
     int uniformTex = -1;
     bool graphicsReady = false;
     std::vector<SpriteSheet> spriteSheets;
+
+    std::unordered_map<std::string, int> spriteCache;
+    std::unordered_map<std::string, int> sheetCache;
+    std::unordered_map<std::string, int> fontCache;
 };
 
 } // namespace yuki

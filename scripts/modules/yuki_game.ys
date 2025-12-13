@@ -1,0 +1,297 @@
+var Game = {};
+
+Game.vec2 = fn(x, y) { return { x: x, y: y }; };
+Game.clamp = fn(v, a, b) {
+    if (v < a) return a;
+    if (v > b) return b;
+    return v;
+};
+Game.lerp = fn(a, b, t) { return a + (b - a) * t; };
+
+Game.row_frames = fn(row, cols) {
+    var c = cols;
+    if (c == nil) c = 6;
+    var frames = [];
+    var start = row * c;
+    var i = 0;
+    while (i < c) {
+        push(frames, start + i);
+        i = i + 1;
+    }
+    return frames;
+};
+
+var Scheduler = {};
+Scheduler.create = fn(ctx) {
+    var self = {
+        ctx: ctx,
+        started: false,
+        fixed_dt: 1.0 / 60.0,
+        max_fixed_steps: 6,
+        accum: 0.0,
+        phases: {
+            startup: [],
+            update: [],
+            fixed: [],
+            late: [],
+            draw: []
+        }
+    };
+
+    self.add = fn(phase, fnc) {
+        if (fnc == nil) return;
+        var list = self.phases[phase];
+        if (list == nil) error("unknown phase: " + phase);
+        push(list, fnc);
+    };
+
+    fn run_list(list, dt) {
+        if (list == nil) return;
+        var i = 0;
+        while (i < len(list)) {
+            var f = list[i];
+            if (f != nil) f(dt, self.ctx);
+            i = i + 1;
+        }
+    }
+
+    self.tick = fn(dt) {
+        if (!self.started) {
+            self.started = true;
+            run_list(self.phases.startup, 0);
+        }
+        run_list(self.phases.update, dt);
+        self.accum = self.accum + dt;
+        var steps = 0;
+        while (self.accum >= self.fixed_dt and steps < self.max_fixed_steps) {
+            self.accum = self.accum - self.fixed_dt;
+            run_list(self.phases.fixed, self.fixed_dt);
+            steps = steps + 1;
+        }
+        run_list(self.phases.late, dt);
+        run_list(self.phases.draw, dt);
+    };
+
+    return self;
+};
+
+var World = {};
+World.create = fn(ctx) {
+    var self = {
+        ctx: ctx,
+        entities: [],
+        next_id: 1
+    };
+
+    self.spawn = fn(spec) {
+        var s = spec;
+        if (s == nil) s = {};
+        var e = {
+            id: self.next_id,
+            alive: true,
+            x: s.x,
+            y: s.y,
+            vx: 0,
+            vy: 0,
+            tag: s.tag,
+            collider: s.collider,
+            anim: s.anim,
+            on_update: s.on_update,
+            on_fixed: s.on_fixed,
+            on_draw: s.on_draw
+        };
+        self.next_id = self.next_id + 1;
+        push(self.entities, e);
+        return e;
+    };
+
+    self.kill = fn(e) { if (e != nil) e.alive = false; };
+
+    fn sync_from_collider(e) {
+        var c = e.collider;
+        if (c == nil or c.id == nil) return;
+        var pos = collider_get_position(c.id);
+        e.x = pos.x - c.ox + c.w * 0.5;
+        e.y = pos.y - c.oy + c.h * 0.5;
+    }
+
+    fn sync_to_collider(e) {
+        var c = e.collider;
+        if (c == nil or c.id == nil) return;
+        collider_set_position(c.id, e.x - c.w * 0.5 + c.ox, e.y - c.h * 0.5 + c.oy);
+    }
+
+    self.update = fn(dt) {
+        var i = 0;
+        while (i < len(self.entities)) {
+            var e = self.entities[i];
+            if (e.alive and e.on_update != nil) e.on_update(dt, self.ctx, self, e);
+            i = i + 1;
+        }
+    };
+
+    self.fixed = fn(dt) {
+        var i = 0;
+        while (i < len(self.entities)) {
+            var e = self.entities[i];
+            if (!e.alive) {
+                i = i + 1;
+                continue;
+            }
+
+            var dx = e.vx * dt;
+            var dy = e.vy * dt;
+            var c = e.collider;
+            if (c != nil and c.id != nil) {
+                collider_move(c.id, dx, dy);
+                sync_from_collider(e);
+            } else {
+                e.x = e.x + dx;
+                e.y = e.y + dy;
+            }
+
+            if (e.on_fixed != nil) e.on_fixed(dt, self.ctx, self, e);
+
+            if (e.anim != nil) e.anim.set_pos(e.x, e.y);
+            if (c != nil and c.id != nil) sync_to_collider(e);
+            i = i + 1;
+        }
+
+        var j = 0;
+        while (j < len(self.entities)) {
+            if (!self.entities[j].alive) {
+                self.entities[j] = self.entities[len(self.entities) - 1];
+                pop(self.entities);
+            } else {
+                j = j + 1;
+            }
+        }
+    };
+
+    self.draw = fn(dt) {
+        var i = 0;
+        while (i < len(self.entities)) {
+            var e = self.entities[i];
+            if (!e.alive) {
+                i = i + 1;
+                continue;
+            }
+            if (e.on_draw != nil) e.on_draw(dt, self.ctx, self, e);
+            else if (e.anim != nil) {
+                e.anim.play(false);
+                e.anim.draw();
+            }
+            i = i + 1;
+        }
+    };
+
+    return self;
+};
+
+var Particles = {};
+Particles.create = fn(ctx) {
+    var self = {
+        ctx: ctx,
+        items: [],
+        pixel_snap: true
+    };
+
+    self.emit = fn(x, y, count, opts) {
+        var o = opts;
+        if (o == nil) o = {};
+        var n = count;
+        if (n == nil) n = 1;
+        var i = 0;
+        while (i < n) {
+            var a = random(6.28318);
+            var sp = o.speed;
+            if (sp == nil) sp = 40;
+            var jitter = o.jitter;
+            if (jitter == nil) jitter = 0;
+            var vx = cos(a) * sp + (random(jitter) - jitter * 0.5);
+            var vy = sin(a) * sp + (random(jitter) - jitter * 0.5);
+            var life = o.life;
+            if (life == nil) life = 0.5;
+            var size = o.size;
+            if (size == nil) size = 2;
+            var r = o.r;
+            var g = o.g;
+            var b = o.b;
+            if (r == nil) r = 0.7;
+            if (g == nil) g = 0.85;
+            if (b == nil) b = 1.0;
+            var grav = o.gravity;
+            if (grav == nil) grav = 0;
+            var drag = o.drag;
+            if (drag == nil) drag = 0;
+            var sheet_id = o.sheet_id;
+            var frame = o.frame;
+            if (frame == nil) frame = 0;
+            push(self.items, {
+                x: x,
+                y: y,
+                vx: vx,
+                vy: vy,
+                age: 0,
+                life: life,
+                size: size,
+                r: r,
+                g: g,
+                b: b,
+                a: 1.0,
+                gravity: grav,
+                drag: drag,
+                sheet_id: sheet_id,
+                frame: frame
+            });
+            i = i + 1;
+        }
+    };
+
+    self.update = fn(dt) {
+        var i = 0;
+        while (i < len(self.items)) {
+            var p = self.items[i];
+            p.age = p.age + dt;
+            if (p.age >= p.life) {
+                self.items[i] = self.items[len(self.items) - 1];
+                pop(self.items);
+                continue;
+            }
+            var t = p.age / p.life;
+            p.a = 1.0 - t;
+            p.vy = p.vy + p.gravity * dt;
+            if (p.drag != 0) {
+                var d = Game.clamp(1.0 - p.drag * dt, 0, 1);
+                p.vx = p.vx * d;
+                p.vy = p.vy * d;
+            }
+            p.x = p.x + p.vx * dt;
+            p.y = p.y + p.vy * dt;
+            i = i + 1;
+        }
+    };
+
+    self.draw = fn(dt) {
+        var i = 0;
+        while (i < len(self.items)) {
+            var p = self.items[i];
+            var x = p.x;
+            var y = p.y;
+            if (self.pixel_snap) {
+                x = floor(x + 0.5);
+                y = floor(y + 0.5);
+            }
+            if (p.sheet_id != nil and p.sheet_id >= 0) {
+                draw_sprite_frame(p.sheet_id, p.frame, x, y, 0, 1, 1, false, false, -1, -1, p.a);
+            } else {
+                draw_rect(x - p.size * 0.5, y - p.size * 0.5, p.size, p.size, p.r, p.g, p.b, p.a);
+            }
+            i = i + 1;
+        }
+    };
+
+    return self;
+};
+
+exports = { Game: Game, Scheduler: Scheduler, World: World, Particles: Particles };

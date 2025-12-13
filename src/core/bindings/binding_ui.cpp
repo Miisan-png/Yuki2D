@@ -1,0 +1,77 @@
+#include "register_bindings.hpp"
+#include "ui_api.hpp"
+
+namespace yuki {
+void registerUiBuiltins(std::unordered_map<std::string, NativeFn>& builtins) {
+    builtins["ui_enabled"] = apiUiEnabled;
+    builtins["ui_constants"] = apiUiConstants;
+    builtins["ui_begin"] = apiUiBegin;
+    builtins["ui_begin_ex"] = apiUiBeginEx;
+    builtins["ui_end"] = apiUiEnd;
+    builtins["ui_text"] = apiUiText;
+    builtins["ui_text_colored"] = apiUiTextColored;
+    builtins["ui_separator"] = apiUiSeparator;
+    builtins["ui_same_line"] = apiUiSameLine;
+    builtins["ui_spacing"] = apiUiSpacing;
+    builtins["ui_new_line"] = apiUiNewLine;
+    builtins["ui_begin_child"] = apiUiBeginChild;
+    builtins["ui_end_child"] = apiUiEndChild;
+    builtins["ui_collapsing_header"] = apiUiCollapsingHeader;
+    builtins["ui_tree_node"] = apiUiTreeNode;
+    builtins["ui_tree_pop"] = apiUiTreePop;
+    builtins["ui_selectable"] = apiUiSelectable;
+    builtins["ui_button"] = apiUiButton;
+    builtins["ui_checkbox"] = apiUiCheckbox;
+    builtins["ui_slider_float"] = apiUiSliderFloat;
+    builtins["ui_slider_int"] = apiUiSliderInt;
+    builtins["ui_drag_float"] = apiUiDragFloat;
+    builtins["ui_drag_int"] = apiUiDragInt;
+    builtins["ui_combo"] = apiUiCombo;
+    builtins["ui_input_text"] = apiUiInputText;
+    builtins["ui_input_text_ex"] = apiUiInputTextEx;
+    builtins["ui_color_edit4"] = apiUiColorEdit4;
+    builtins["ui_progress_bar"] = apiUiProgressBar;
+    builtins["ui_begin_main_menu_bar"] = apiUiBeginMainMenuBar;
+    builtins["ui_end_main_menu_bar"] = apiUiEndMainMenuBar;
+    builtins["ui_begin_menu_bar"] = apiUiBeginMenuBar;
+    builtins["ui_end_menu_bar"] = apiUiEndMenuBar;
+    builtins["ui_begin_menu"] = apiUiBeginMenu;
+    builtins["ui_end_menu"] = apiUiEndMenu;
+    builtins["ui_menu_item"] = apiUiMenuItem;
+    builtins["ui_set_next_window_pos"] = apiUiSetNextWindowPos;
+    builtins["ui_set_next_window_size"] = apiUiSetNextWindowSize;
+    builtins["ui_set_next_item_width"] = apiUiSetNextItemWidth;
+    builtins["ui_begin_tab_bar"] = apiUiBeginTabBar;
+    builtins["ui_end_tab_bar"] = apiUiEndTabBar;
+    builtins["ui_begin_tab_item_ex"] = apiUiBeginTabItemEx;
+    builtins["ui_end_tab_item"] = apiUiEndTabItem;
+    builtins["ui_window"] = apiUiWindow;
+    builtins["ui_demo_window"] = apiUiDemoWindow;
+    builtins["ui_image_sprite"] = apiUiImageSprite;
+    builtins["ui_image_sprite_sheet"] = apiUiImageSpriteSheet;
+    builtins["ui_image_font"] = apiUiImageFont;
+    builtins["ui_begin_table"] = apiUiBeginTable;
+    builtins["ui_end_table"] = apiUiEndTable;
+    builtins["ui_table_setup_column"] = apiUiTableSetupColumn;
+    builtins["ui_table_headers_row"] = apiUiTableHeadersRow;
+    builtins["ui_table_next_row"] = apiUiTableNextRow;
+    builtins["ui_table_set_column_index"] = apiUiTableSetColumnIndex;
+    builtins["ui_table_next_column"] = apiUiTableNextColumn;
+    builtins["ui_open_popup"] = apiUiOpenPopup;
+    builtins["ui_begin_popup_modal"] = apiUiBeginPopupModal;
+    builtins["ui_begin_popup_modal_ex"] = apiUiBeginPopupModalEx;
+    builtins["ui_end_popup"] = apiUiEndPopup;
+    builtins["ui_close_current_popup"] = apiUiCloseCurrentPopup;
+    builtins["ui_set_tooltip"] = apiUiSetTooltip;
+    builtins["ui_modal"] = apiUiModal;
+    builtins["ui_set_scale"] = apiUiSetScale;
+    builtins["ui_get_scale"] = apiUiGetScale;
+    builtins["ui_font_add_ttf"] = apiUiFontAddTtf;
+    builtins["ui_font_set_default"] = apiUiFontSetDefault;
+    builtins["ui_font_push"] = apiUiFontPush;
+    builtins["ui_font_pop"] = apiUiFontPop;
+    builtins["ui_want_capture_keyboard"] = apiUiWantCaptureKeyboard;
+    builtins["ui_want_capture_mouse"] = apiUiWantCaptureMouse;
+    builtins["ui_set_theme"] = apiUiSetTheme;
+}
+}

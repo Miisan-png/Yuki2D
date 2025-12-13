@@ -1,168 +1,144 @@
-var player_hp = 100;
-var sheet;
-var idle_down;
-var idle_right;
-var idle_up;
-var move_down;
-var move_right;
-var move_up;
-var active_anim;
-var x = 200;
-var y = 200;
-var speed = 140;
-var facing = "down";
-var col_id = -1;
-var col_w = 32;
-var col_h = 32;
-var sprite_half = 48;
-var col_offset_y = 4;
+var Y = require("stdlib.ys", "Y");
+var M = require("yuki_game.ys");
+var Game = M.Game;
 
-fn row_frames(row) {
-    var frames = array();
-    var cols = 6;
-    var start = row * cols;
-    var i = 0;
-    while (i < cols) {
-        array_push(frames, start + i);
-        i = i + 1;
-    }
-    return frames;
+var sheet_id = -1;
+
+fn ensure_sheet() {
+    if (sheet_id >= 0) return;
+    sheet_id = load_sprite_sheet("asset_pack/characters/player.png", 48, 48);
 }
 
-fn player_init() {
-    sheet = load_sprite_sheet("asset_pack/characters/player.png", 48, 48);
-    idle_down = anim_create(sheet, row_frames(0), 4, true);
-    idle_right = anim_create(sheet, row_frames(1), 4, true);
-    idle_up = anim_create(sheet, row_frames(2), 4, true);
-    move_down = anim_create(sheet, row_frames(3), 10, true);
-    move_right = anim_create(sheet, row_frames(4), 10, true);
-    move_up = anim_create(sheet, row_frames(5), 10, true);
-    anim_set_origin(idle_down, 24, 24);
-    anim_set_origin(idle_right, 24, 24);
-    anim_set_origin(idle_up, 24, 24);
-    anim_set_origin(move_down, 24, 24);
-    anim_set_origin(move_right, 24, 24);
-    anim_set_origin(move_up, 24, 24);
-    anim_set_scale(idle_down, 2, 2);
-    anim_set_scale(idle_right, 2, 2);
-    anim_set_scale(idle_up, 2, 2);
-    anim_set_scale(move_down, 2, 2);
-    anim_set_scale(move_right, 2, 2);
-    anim_set_scale(move_up, 2, 2);
-    active_anim = idle_down;
-    col_id = collider_create(x - col_w * 0.5, y - col_h * 0.5, col_w, col_h, "player", true);
+fn make_anim(row, fps) {
+    ensure_sheet();
+    var a = Y.Anim.new(sheet_id, Game.row_frames(row, 6), fps, true);
+    a.set_origin(24, 24);
+    a.set_scale(2, 2);
+    return a;
 }
 
-fn player_set_position(px, py) {
-    x = px;
-    y = py;
-    if (col_id >= 0) {
-        collider_set_position(col_id, x - col_w * 0.5, y - col_h * 0.5 + col_offset_y);
-    }
-}
+fn spawn(ctx, world, particles, x, y) {
+    var idle_down = make_anim(0, 4);
+    var idle_right = make_anim(1, 4);
+    var idle_up = make_anim(2, 4);
+    var move_down = make_anim(3, 10);
+    var move_right = make_anim(4, 10);
+    var move_up = make_anim(5, 10);
 
-fn player_handle_input(dt) {
-    var move_x = 0;
-    var move_y = 0;
-    if (is_key_down("a") or is_key_down("left")) { move_x = move_x - 1; }
-    if (is_key_down("d") or is_key_down("right")) { move_x = move_x + 1; }
-    if (is_key_down("w") or is_key_down("up")) { move_y = move_y - 1; }
-    if (is_key_down("s") or is_key_down("down")) { move_y = move_y + 1; }
-    var moving = move_x != 0 or move_y != 0;
-    if (moving) {
-        if (move_x != 0 and move_y != 0) {
-            move_x = move_x * 0.7071;
-            move_y = move_y * 0.7071;
+    var col_w = 32;
+    var col_h = 32;
+    var col_offset_y = 4;
+    var cid = collider_create(x - col_w * 0.5, y - col_h * 0.5 + col_offset_y, col_w, col_h, "player", true);
+    var collider = { id: cid, w: col_w, h: col_h, ox: 0, oy: col_offset_y };
+
+    var e = world.spawn({
+        x: x,
+        y: y,
+        tag: "player",
+        collider: collider
+    });
+
+    e.hp = 100;
+    e.speed = 140;
+    e.facing = "down";
+    e.anim = idle_down;
+    e._idle_down = idle_down;
+    e._idle_right = idle_right;
+    e._idle_up = idle_up;
+    e._move_down = move_down;
+    e._move_right = move_right;
+    e._move_up = move_up;
+    e._all = [idle_down, idle_right, idle_up, move_down, move_right, move_up];
+    e._dust = particles;
+    e._dust_accum = 0;
+    e.debug = false;
+
+    e.on_update = fn(dt, ctx2, world2, self) {
+        var mx = 0;
+        var my = 0;
+        if (ctx2.input != nil and ctx2.input.down("a")) mx = mx - 1;
+        if (ctx2.input != nil and ctx2.input.down("d")) mx = mx + 1;
+        if (ctx2.input != nil and ctx2.input.down("w")) my = my - 1;
+        if (ctx2.input != nil and ctx2.input.down("s")) my = my + 1;
+
+        var moving = mx != 0 or my != 0;
+        if (moving and mx != 0 and my != 0) {
+            mx = mx * 0.7071;
+            my = my * 0.7071;
         }
-        var dx = move_x * speed * dt;
-        var dy = move_y * speed * dt;
-        if (col_id >= 0) { collider_move(col_id, dx, dy); }
-        else {
-            x = x + dx;
-            y = y + dy;
+
+        self.vx = mx * self.speed;
+        self.vy = my * self.speed;
+
+        if (moving) {
+            if (abs(mx) > abs(my)) {
+                if (mx > 0) self.facing = "right";
+                else self.facing = "left";
+            } else {
+                if (my > 0) self.facing = "down";
+                else self.facing = "up";
+            }
         }
-        if (abs(move_x) > abs(move_y)) {
-            if (move_x > 0) { facing = "right"; }
-            else { facing = "left"; }
+
+        var flip = self.facing == "left";
+        self._idle_right.set_flip(flip, false);
+        self._move_right.set_flip(flip, false);
+
+        var active = self._idle_down;
+        if (moving) {
+            if (self.facing == "down") active = self._move_down;
+            else if (self.facing == "up") active = self._move_up;
+            else active = self._move_right;
         } else {
-            if (move_y > 0) { facing = "down"; }
-            else { facing = "up"; }
+            if (self.facing == "down") active = self._idle_down;
+            else if (self.facing == "up") active = self._idle_up;
+            else active = self._idle_right;
         }
-        if (col_id >= 0) {
-            var pos = collider_get_position(col_id);
-            x = map_get(pos, "x") + col_w * 0.5;
-            y = map_get(pos, "y") + col_h * 0.5;
+        self.anim = active;
+
+        var i = 0;
+        while (i < len(self._all)) {
+            var a = self._all[i];
+            if (a.id != self.anim.id) a.stop();
+            i = i + 1;
         }
-    }
-    return moving;
+
+        if (ctx2.input != nil and ctx2.input.pressed("tab")) self.debug = !self.debug;
+
+        if (moving and self._dust != nil) {
+            self._dust_accum = self._dust_accum + dt;
+            if (self._dust_accum >= 0.035) {
+                self._dust_accum = 0;
+                self._dust.emit(self.x, self.y + 18, 2, {
+                    speed: 30,
+                    jitter: 16,
+                    life: 0.3,
+                    size: 2,
+                    r: 0.8,
+                    g: 0.85,
+                    b: 0.9,
+                    gravity: 10,
+                    drag: 6
+                });
+            }
+        }
+    };
+
+    e.on_draw = fn(dt, ctx2, world2, self) {
+        self.anim.play(false);
+        self.anim.draw();
+        if (self.debug and self.collider != nil and self.collider.id != nil) {
+            var c = self.collider;
+            var left = self.x - c.w * 0.5 + c.ox;
+            var top = self.y - c.h * 0.5 + c.oy;
+            draw_rect(left - 2, top - 2, c.w + 4, 2, 0.2, 1, 0.2, 1);
+            draw_rect(left - 2, top + c.h, c.w + 4, 2, 0.2, 1, 0.2, 1);
+            draw_rect(left - 2, top, 2, c.h, 0.2, 1, 0.2, 1);
+            draw_rect(left + c.w, top, 2, c.h, 0.2, 1, 0.2, 1);
+        }
+    };
+
+    return e;
 }
 
-fn player_update(dt) {
-    var moving = player_handle_input(dt);
-    if (moving) {
-        if (facing == "down") active_anim = move_down;
-        else if (facing == "up") active_anim = move_up;
-        else active_anim = move_right;
-        anim_play(active_anim, false);
-        anim_play(idle_down, false);
-        anim_play(idle_right, false);
-        anim_play(idle_up, false);
-    } else {
-        if (facing == "down") active_anim = idle_down;
-        else if (facing == "up") active_anim = idle_up;
-        else active_anim = idle_right;
-        anim_play(active_anim, false);
-        anim_stop(move_down);
-        anim_stop(move_right);
-        anim_stop(move_up);
-    }
-
-    var flip_left = facing == "left";
-    var flip_side = flip_left and (facing == "left" or facing == "right");
-    anim_set_flip(idle_down, false, false);
-    anim_set_flip(idle_right, flip_side, false);
-    anim_set_flip(idle_up, false, false);
-    anim_set_flip(move_down, false, false);
-    anim_set_flip(move_right, flip_side, false);
-    anim_set_flip(move_up, false, false);
-
-    var sx = x - sprite_half;
-    var sy = y - sprite_half;
-    anim_set_position(idle_down, sx, sy);
-    anim_set_position(idle_right, sx, sy);
-    anim_set_position(idle_up, sx, sy);
-    anim_set_position(move_down, sx, sy);
-    anim_set_position(move_right, sx, sy);
-    anim_set_position(move_up, sx, sy);
-}
-
-fn player_draw() {
-    anim_draw(active_anim);
-    var left = x - col_w * 0.5;
-    var top = y - col_h * 0.5 + col_offset_y;
-    var thick = 2;
-    draw_rect(left - thick, top - thick, col_w + thick * 2, thick, 0.1, 0.9, 0.1);
-    draw_rect(left - thick, top + col_h, col_w + thick * 2, thick, 0.1, 0.9, 0.1);
-    draw_rect(left - thick, top, thick, col_h, 0.1, 0.9, 0.1);
-    draw_rect(left + col_w, top, thick, col_h, 0.1, 0.9, 0.1);
-}
-
-fn player_get_hp() { return player_hp; }
-fn player_set_hp(v) { player_hp = v; }
-fn player_get_position() {
-    return map("x", x, "y", y);
-}
-fn player_get_x() { return x; }
-fn player_get_y() { return y; }
-
-exports = map(
-    "init", player_init,
-    "update", player_update,
-    "get_hp", player_get_hp,
-    "set_hp", player_set_hp,
-    "get_position", player_get_position,
-    "get_x", player_get_x,
-    "get_y", player_get_y,
-    "set_position", player_set_position,
-    "draw", player_draw
-);
+exports = { spawn: spawn };

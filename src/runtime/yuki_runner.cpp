@@ -10,6 +10,7 @@
 #include "../script/ast.hpp"
 #include "../script/interpreter.hpp"
 #include "dev_console.hpp"
+#include "imgui_layer.hpp"
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -32,6 +33,8 @@ void YukiRunner::run(Window& window) {
     renderer.setDebugEnabled(false);
     std::unique_ptr<Interpreter> interpreter;
     DevConsole console(&renderer, nullptr);
+    ImGuiLayer imgui;
+    imgui.init(window);
     initInput(window);
     Value updateFn = Value::nilVal();
 
@@ -142,10 +145,12 @@ void YukiRunner::run(Window& window) {
     Time time;
     double watchAccum = 0.0;
     while (!window.shouldClose()) {
+        window.pollEvents();
         time.update();
         float dt = time.deltaTime();
         updateInput(window);
         console.updateInput();
+        imgui.newFrame();
 
         bool wantReload = false;
         if (watch) {
@@ -175,12 +180,12 @@ void YukiRunner::run(Window& window) {
         window.getFramebufferSize(fbW, fbH);
 
         renderer.flush(fbW, fbH);
+        imgui.render();
         if (console.isActive()) {
             console.drawOverlay(renderer.getVirtualWidth(), renderer.getVirtualHeight());
             renderer.flush(fbW, fbH, false);
         }
         window.swapBuffers();
-        window.pollEvents();
     }
 }
 }

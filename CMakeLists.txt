@@ -21,6 +21,7 @@ add_executable(yuki2d
     src/core/bindings/binding_tween.cpp
     src/core/bindings/binding_math.cpp
     src/core/bindings/binding_ase.cpp
+    src/core/bindings/binding_ui.cpp
     src/core/aseprite_loader.cpp
     src/core/bindings/core_api.cpp
     src/core/bindings/collision_api.cpp
@@ -29,6 +30,7 @@ add_executable(yuki2d
     src/core/bindings/anim_api.cpp
     src/core/bindings/render_api.cpp
     src/core/bindings/math_api.cpp
+    src/core/bindings/ui_api.cpp
     src/script/yuki_script_loader.cpp
     src/script/tokenizer.cpp
     src/script/token_debug.cpp
@@ -38,8 +40,16 @@ add_executable(yuki2d
     src/script/builtins.cpp
     src/script/interpreter.cpp
     src/script/environment.cpp
+    src/runtime/imgui_layer.cpp
     src/runtime/yuki_runner.cpp
-    src/runtime/dev_console.cpp)
-target_include_directories(yuki2d PRIVATE src/core src/script src/runtime src)
+    src/runtime/dev_console.cpp
+    third_party/imgui/imgui.cpp
+    third_party/imgui/imgui_demo.cpp
+    third_party/imgui/imgui_draw.cpp
+    third_party/imgui/imgui_tables.cpp
+    third_party/imgui/imgui_widgets.cpp
+    third_party/imgui/backends/imgui_impl_glfw.cpp
+    third_party/imgui/backends/imgui_impl_opengl2.cpp)
+target_include_directories(yuki2d PRIVATE src/core src/script src/runtime src third_party/imgui third_party/imgui/backends)
 target_link_libraries(yuki2d PRIVATE glfw OpenGL::GL)
 target_compile_options(yuki2d PRIVATE -Wall -Wextra -Wpedantic)

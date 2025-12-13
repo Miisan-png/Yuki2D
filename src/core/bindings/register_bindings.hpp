@@ -11,4 +11,5 @@ void registerInputBuiltins(std::unordered_map<std::string, NativeFn>& builtins);
 void registerTweenBuiltins(std::unordered_map<std::string, NativeFn>& builtins);
 void registerMathBuiltins(std::unordered_map<std::string, NativeFn>& builtins);
 void registerAseBuiltins(std::unordered_map<std::string, NativeFn>& builtins);
+void registerUiBuiltins(std::unordered_map<std::string, NativeFn>& builtins);
 } // namespace yuki

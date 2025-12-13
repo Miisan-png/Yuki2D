@@ -1,0 +1,96 @@
+var UI = {};
+
+UI.C = ui_constants();
+
+UI.enabled = fn() { return ui_enabled(); };
+UI.begin = fn(name) { return ui_begin(name); };
+UI.begin_ex = fn(name, open, flags) { return ui_begin_ex(name, open, flags); };
+UI.end = fn() { ui_end(); };
+UI.text = fn(s) { ui_text(s); };
+UI.text_colored = fn(r, g, b, a, s) { ui_text_colored(r, g, b, a, s); };
+UI.separator = fn() { ui_separator(); };
+UI.same_line = fn() { ui_same_line(); };
+UI.spacing = fn() { ui_spacing(); };
+UI.new_line = fn() { ui_new_line(); };
+UI.begin_child = fn(name, w, h, border, flags) { return ui_begin_child(name, w, h, border, flags); };
+UI.end_child = fn() { ui_end_child(); };
+UI.header = fn(label, open) { return ui_collapsing_header(label, open); };
+UI.tree_node = fn(label) { return ui_tree_node(label); };
+UI.tree_pop = fn() { ui_tree_pop(); };
+UI.selectable = fn(label, selected) { return ui_selectable(label, selected); };
+UI.button = fn(label) { return ui_button(label); };
+UI.checkbox = fn(label, v) { return ui_checkbox(label, v); };
+UI.slider_float = fn(label, v, min, max) { return ui_slider_float(label, v, min, max); };
+UI.slider_int = fn(label, v, min, max) { return ui_slider_int(label, v, min, max); };
+UI.drag_float = fn(label, v, speed, min, max) { return ui_drag_float(label, v, speed, min, max); };
+UI.drag_int = fn(label, v, speed, min, max) { return ui_drag_int(label, v, speed, min, max); };
+UI.combo = fn(label, idx, items) { return ui_combo(label, idx, items); };
+UI.input_text = fn(label, v, cap) { return ui_input_text(label, v, cap); };
+UI.input_text_ex = fn(label, v, cap) { return ui_input_text_ex(label, v, cap); };
+UI.color4 = fn(label, r, g, b, a) { return ui_color_edit4(label, r, g, b, a); };
+UI.progress = fn(frac, overlay) { ui_progress_bar(frac, overlay); };
+UI.begin_main_menu_bar = fn() { return ui_begin_main_menu_bar(); };
+UI.end_main_menu_bar = fn() { ui_end_main_menu_bar(); };
+UI.begin_menu_bar = fn() { return ui_begin_menu_bar(); };
+UI.end_menu_bar = fn() { ui_end_menu_bar(); };
+UI.begin_menu = fn(label, enabled) { return ui_begin_menu(label, enabled); };
+UI.end_menu = fn() { ui_end_menu(); };
+UI.menu_item = fn(label, shortcut, selected, enabled) { return ui_menu_item(label, shortcut, selected, enabled); };
+UI.set_next_window_pos = fn(x, y, cond) { ui_set_next_window_pos(x, y, cond); };
+UI.set_next_window_size = fn(w, h, cond) { ui_set_next_window_size(w, h, cond); };
+UI.set_next_item_width = fn(w) { ui_set_next_item_width(w); };
+UI.begin_tab_bar = fn(id, flags) { return ui_begin_tab_bar(id, flags); };
+UI.end_tab_bar = fn() { ui_end_tab_bar(); };
+UI.begin_tab_item_ex = fn(label, open, flags) { return ui_begin_tab_item_ex(label, open, flags); };
+UI.end_tab_item = fn() { ui_end_tab_item(); };
+UI.demo = fn(open) { return ui_demo_window(open); };
+UI.image_sprite = fn(sprite_id, w, h) { ui_image_sprite(sprite_id, w, h); };
+UI.image_sheet = fn(sheet_id, w, h) { ui_image_sprite_sheet(sheet_id, w, h); };
+UI.image_font = fn(font_id, w, h) { ui_image_font(font_id, w, h); };
+UI.begin_table = fn(id, cols, flags) { return ui_begin_table(id, cols, flags); };
+UI.end_table = fn() { ui_end_table(); };
+UI.table_setup_column = fn(label, flags, width) { ui_table_setup_column(label, flags, width); };
+UI.table_headers_row = fn() { ui_table_headers_row(); };
+UI.table_next_row = fn() { ui_table_next_row(); };
+UI.table_set_column = fn(i) { return ui_table_set_column_index(i); };
+UI.table_next_column = fn() { return ui_table_next_column(); };
+UI.open_popup = fn(id) { ui_open_popup(id); };
+UI.begin_popup_modal = fn(name, open) { return ui_begin_popup_modal(name, open); };
+UI.begin_popup_modal_ex = fn(name, open, flags) { return ui_begin_popup_modal_ex(name, open, flags); };
+UI.end_popup = fn() { ui_end_popup(); };
+UI.close_popup = fn() { ui_close_current_popup(); };
+UI.tooltip = fn(text) { ui_set_tooltip(text); };
+UI.modal_ex = fn(name, open, flags, body) { return ui_modal(name, open, flags, body); };
+UI.set_scale = fn(s) { ui_set_scale(s); };
+UI.get_scale = fn() { return ui_get_scale(); };
+UI.font_add_ttf = fn(path, size_px) { return ui_font_add_ttf(path, size_px); };
+UI.font_set_default = fn(id) { ui_font_set_default(id); };
+UI.font_push = fn(id) { ui_font_push(id); };
+UI.font_pop = fn() { ui_font_pop(); };
+UI.want_keyboard = fn() { return ui_want_capture_keyboard(); };
+UI.want_mouse = fn() { return ui_want_capture_mouse(); };
+UI.theme = fn(name) { ui_set_theme(name); };
+
+UI.window = fn(name, body, open, flags) {
+    return ui_window(name, open, flags, body);
+};
+
+UI.child = fn(name, w, h, body, border, flags) {
+    var ok = UI.begin_child(name, w, h, border, flags);
+    if (ok and body != nil) body();
+    UI.end_child();
+    return ok;
+};
+
+UI.table = fn(id, cols, flags, body) {
+    var ok = UI.begin_table(id, cols, flags);
+    if (ok and body != nil) body();
+    if (ok) UI.end_table();
+    return ok;
+};
+
+UI.modal = fn(name, open, body) {
+    return ui_modal(name, open, 0, body);
+};
+
+exports = UI;

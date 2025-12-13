@@ -1,4 +1,6 @@
 build/
+.DS_Store
+imgui.ini
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake

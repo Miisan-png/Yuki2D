@@ -13,9 +13,9 @@ BindingsState& st = bindingsState();
 
 std::filesystem::path resolvePath(const std::string& rel) {
     std::filesystem::path p(rel);
-    if (p.is_absolute()) return p;
-    if (!st.assetBase.empty()) return std::filesystem::path(st.assetBase) / p;
-    return p;
+    if (p.is_absolute()) return p.lexically_normal();
+    if (!st.assetBase.empty()) return (std::filesystem::path(st.assetBase) / p).lexically_normal();
+    return p.lexically_normal();
 }
 } // namespace
 
@@ -27,7 +27,8 @@ Value apiSetClearColor(const std::vector<Value>& args) {
 }
 Value apiDrawRect(const std::vector<Value>& args) {
     if (args.size() >= 7 && st.renderer) {
-        st.renderer->drawRect(args[0].numberVal, args[1].numberVal, args[2].numberVal, args[3].numberVal, args[4].numberVal, args[5].numberVal, args[6].numberVal);
+        float a = args.size() > 7 ? (float)args[7].numberVal : 1.0f;
+        st.renderer->drawRect(args[0].numberVal, args[1].numberVal, args[2].numberVal, args[3].numberVal, args[4].numberVal, args[5].numberVal, args[6].numberVal, a);
     }
     return Value::nilVal();
 }
