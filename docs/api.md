@@ -15,6 +15,7 @@ All functions are available globally after engine init. Booleans accept `true`/`
 - `measure_text_width(font_id, text, scale=1, max_width=0, line_height=0)`
 - `measure_text_height(font_id, text, scale=1, max_width=0, line_height=0)`
 - `set_virtual_resolution(w, h)`
+- Camera: `camera_set(x, y)`, `camera_set_zoom(z)`, `camera_set_rotation(deg)`, `camera_follow_target(x, y)`, `camera_follow_enable(on)`, `camera_follow_lerp(speed)`
 
 ## Animation
 - `anim_create(sheet_id, frames_array, fps, loop_bool)` -> animId

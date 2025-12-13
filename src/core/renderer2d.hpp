@@ -113,6 +113,19 @@ public:
     int getVirtualWidth() const { return virtualW; }
     int getVirtualHeight() const { return virtualH; }
 
+    void cameraSet(float x, float y);
+    void cameraSetZoom(float zoom);
+    void cameraSetRotation(float deg);
+    void cameraFollowTarget(float x, float y);
+    void cameraFollowEnable(bool on);
+    void cameraFollowLerp(float speed);
+    void cameraUpdate(double dt);
+    float cameraGetX() const { return cameraX; }
+    float cameraGetY() const { return cameraY; }
+    float cameraGetZoom() const { return cameraZoom; }
+    float cameraGetRotation() const { return cameraRotationDeg; }
+    bool cameraIsFollowEnabled() const { return cameraFollowOn; }
+
     void debugDrawRect(float x, float y, float w, float h, float r, float g, float b);
     void debugDrawLine(float x1, float y1, float x2, float y2, float r, float g, float b);
     void setDebugEnabled(bool enabled);
@@ -137,6 +150,14 @@ private:
     bool debugEnabled;
     int virtualW = 1280;
     int virtualH = 720;
+    float cameraX = 640.0f;
+    float cameraY = 360.0f;
+    float cameraZoom = 1.0f;
+    float cameraRotationDeg = 0.0f;
+    bool cameraFollowOn = false;
+    float cameraTargetX = 640.0f;
+    float cameraTargetY = 360.0f;
+    float cameraFollowSpeed = 8.0f;
     unsigned int shaderProgram = 0;
     unsigned int vbo = 0;
     int attribPos = -1;

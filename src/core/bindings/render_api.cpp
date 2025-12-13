@@ -193,4 +193,41 @@ Value apiSetVirtualResolution(const std::vector<Value>& args) {
     st.renderer->setVirtualResolution(w, h);
     return Value::nilVal();
 }
+
+Value apiCameraSet(const std::vector<Value>& args) {
+    if (args.size() < 2 || !st.renderer) return Value::nilVal();
+    st.renderer->cameraSet((float)args[0].numberVal, (float)args[1].numberVal);
+    return Value::nilVal();
+}
+
+Value apiCameraSetZoom(const std::vector<Value>& args) {
+    if (args.empty() || !st.renderer) return Value::nilVal();
+    st.renderer->cameraSetZoom((float)args[0].numberVal);
+    return Value::nilVal();
+}
+
+Value apiCameraSetRotation(const std::vector<Value>& args) {
+    if (args.empty() || !st.renderer) return Value::nilVal();
+    st.renderer->cameraSetRotation((float)args[0].numberVal);
+    return Value::nilVal();
+}
+
+Value apiCameraFollowTarget(const std::vector<Value>& args) {
+    if (args.size() < 2 || !st.renderer) return Value::nilVal();
+    st.renderer->cameraFollowTarget((float)args[0].numberVal, (float)args[1].numberVal);
+    return Value::nilVal();
+}
+
+Value apiCameraFollowEnable(const std::vector<Value>& args) {
+    if (args.empty() || !st.renderer) return Value::nilVal();
+    bool on = args[0].isBool() ? args[0].boolVal : (args[0].isNumber() ? args[0].numberVal != 0.0 : false);
+    st.renderer->cameraFollowEnable(on);
+    return Value::nilVal();
+}
+
+Value apiCameraFollowLerp(const std::vector<Value>& args) {
+    if (args.empty() || !st.renderer) return Value::nilVal();
+    st.renderer->cameraFollowLerp((float)args[0].numberVal);
+    return Value::nilVal();
+}
 } // namespace yuki

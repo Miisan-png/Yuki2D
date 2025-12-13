@@ -18,4 +18,10 @@ Value apiSetDebugDrawEnabled(const std::vector<Value>& args);
 Value apiDebugDrawRect(const std::vector<Value>& args);
 Value apiDebugDrawLine(const std::vector<Value>& args);
 Value apiSetVirtualResolution(const std::vector<Value>& args);
+Value apiCameraSet(const std::vector<Value>& args);
+Value apiCameraSetZoom(const std::vector<Value>& args);
+Value apiCameraSetRotation(const std::vector<Value>& args);
+Value apiCameraFollowTarget(const std::vector<Value>& args);
+Value apiCameraFollowEnable(const std::vector<Value>& args);
+Value apiCameraFollowLerp(const std::vector<Value>& args);
 } // namespace yuki

@@ -19,5 +19,11 @@ void registerRenderBuiltins(std::unordered_map<std::string, NativeFn>& builtins)
     builtins["debug_draw_rect"] = apiDebugDrawRect;
     builtins["debug_draw_line"] = apiDebugDrawLine;
     builtins["set_virtual_resolution"] = apiSetVirtualResolution;
+    builtins["camera_set"] = apiCameraSet;
+    builtins["camera_set_zoom"] = apiCameraSetZoom;
+    builtins["camera_set_rotation"] = apiCameraSetRotation;
+    builtins["camera_follow_target"] = apiCameraFollowTarget;
+    builtins["camera_follow_enable"] = apiCameraFollowEnable;
+    builtins["camera_follow_lerp"] = apiCameraFollowLerp;
 }
 } // namespace yuki

@@ -87,6 +87,7 @@ void EngineBindings::setAssetBase(const std::string& base) {
 
 void EngineBindings::update(double dt) {
     hotReloadAse(dt);
+    if (st.renderer) st.renderer->cameraUpdate(dt);
     updateTweensTick(dt);
     cleanupTweens();
     updateAnimationsTick(dt);

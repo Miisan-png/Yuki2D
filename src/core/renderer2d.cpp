@@ -42,13 +42,13 @@ namespace {
 
     Mat4 mul(const Mat4& a, const Mat4& b) {
         Mat4 out{};
-        for (int row = 0; row < 4; ++row) {
-            for (int col = 0; col < 4; ++col) {
-                out.m[col + row * 4] =
-                    a.m[0 + row * 4] * b.m[col + 0] +
-                    a.m[1 + row * 4] * b.m[col + 4] +
-                    a.m[2 + row * 4] * b.m[col + 8] +
-                    a.m[3 + row * 4] * b.m[col + 12];
+        for (int col = 0; col < 4; ++col) {
+            for (int row = 0; row < 4; ++row) {
+                out.m[col * 4 + row] =
+                    a.m[0 * 4 + row] * b.m[col * 4 + 0] +
+                    a.m[1 * 4 + row] * b.m[col * 4 + 1] +
+                    a.m[2 * 4 + row] * b.m[col * 4 + 2] +
+                    a.m[3 * 4 + row] * b.m[col * 4 + 3];
             }
         }
         return out;
@@ -342,7 +342,12 @@ namespace {
     }
 }
 
-Renderer2D::Renderer2D() : spriteCounter(0), debugEnabled(true) {}
+Renderer2D::Renderer2D() : spriteCounter(0), debugEnabled(true) {
+    cameraX = virtualW * 0.5f;
+    cameraY = virtualH * 0.5f;
+    cameraTargetX = cameraX;
+    cameraTargetY = cameraY;
+}
 
 Renderer2D::~Renderer2D() {
     for (const auto& tex : textures) {
@@ -662,6 +667,49 @@ void Renderer2D::setVirtualResolution(int w, int h) {
     }
 }
 
+void Renderer2D::cameraSet(float x, float y) {
+    cameraX = x;
+    cameraY = y;
+    cameraTargetX = x;
+    cameraTargetY = y;
+}
+
+void Renderer2D::cameraSetZoom(float zoom) {
+    if (zoom <= 0.0f) zoom = 1.0f;
+    cameraZoom = zoom;
+}
+
+void Renderer2D::cameraSetRotation(float deg) {
+    cameraRotationDeg = deg;
+}
+
+void Renderer2D::cameraFollowTarget(float x, float y) {
+    cameraTargetX = x;
+    cameraTargetY = y;
+}
+
+void Renderer2D::cameraFollowEnable(bool on) {
+    cameraFollowOn = on;
+    if (!cameraFollowOn) {
+        cameraTargetX = cameraX;
+        cameraTargetY = cameraY;
+    }
+}
+
+void Renderer2D::cameraFollowLerp(float speed) {
+    if (speed < 0.0f) speed = 0.0f;
+    cameraFollowSpeed = speed;
+}
+
+void Renderer2D::cameraUpdate(double dt) {
+    if (!cameraFollowOn) return;
+    float a = (float)(cameraFollowSpeed * dt);
+    if (a < 0.0f) a = 0.0f;
+    if (a > 1.0f) a = 1.0f;
+    cameraX += (cameraTargetX - cameraX) * a;
+    cameraY += (cameraTargetY - cameraY) * a;
+}
+
 void Renderer2D::debugDrawRect(float x, float y, float w, float h, float r, float g, float b) {
     debugBuffer.push_back({false, x, y, w, h, r, g, b});
 }
@@ -722,8 +770,12 @@ void Renderer2D::flush(int screenWidth, int screenHeight) {
         batch.clear();
     };
 
-    // Camera removed: only projection matrix is used
-    glUniformMatrix4fv(uniformMvp, 1, GL_FALSE, proj.m);
+    Mat4 view = mul(translate((float)virtualW * 0.5f, (float)virtualH * 0.5f, 0.0f),
+                    mul(rotateZ(cameraRotationDeg),
+                        mul(scale(cameraZoom, cameraZoom, 1.0f),
+                            translate(-cameraX, -cameraY, 0.0f))));
+    Mat4 mvp = mul(proj, view);
+    glUniformMatrix4fv(uniformMvp, 1, GL_FALSE, mvp.m);
 
     if (hasRender) {
         for (const auto& cmd : buffer) {

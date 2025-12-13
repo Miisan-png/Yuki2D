@@ -74,3 +74,16 @@ fn init() {
     set_virtual_resolution(640, 360);
 }
 ```
+
+## Camera follow
+```ys
+fn init() {
+    set_virtual_resolution(640, 360);
+    camera_follow_enable(true);
+    camera_follow_lerp(8);
+}
+fn update(dt) {
+    var pos = player_get_position();
+    camera_follow_target(pos.x, pos.y);
+}
+```
